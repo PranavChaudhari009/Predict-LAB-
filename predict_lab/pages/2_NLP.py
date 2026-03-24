@@ -44,7 +44,6 @@ def apply_news_rules(text: str, prediction: int):
         r"\bhidden agenda\b",
         r"\bmind control\b",
         r"\bexperts warn\b",
-        r"!{2,}",
         r"\bcures?\b",
         r"\bcompletely cures?\b",
         r"\bno medicine needed\b",
@@ -65,21 +64,21 @@ def apply_news_rules(text: str, prediction: int):
         r"\breport\b",
         r"\bannounced\b",
         r"\baccording to\b",
-        r"\bdata\b",
         r"\bcommittee\b",
         r"\bdepartment\b",
         r"\bpolicy\b",
         r"\bstatement\b",
         r"\btransport\b",
-        r"\bcity\b",
         r"\bpublic\b",
+        r"\bdata\b",
     ]
 
     fake_hits = sum(bool(re.search(pattern, text_lower)) for pattern in fake_patterns)
     real_hits = sum(bool(re.search(pattern, text_lower)) for pattern in real_patterns)
 
-    if fake_hits >= 2 and real_hits == 0:
+    if fake_hits >= 2:
         return 0, "fake_rule"
+
     if real_hits >= 2 and fake_hits == 0:
         return 1, "real_rule"
 
@@ -288,7 +287,7 @@ FAKE_NEWS_EXAMPLES = {
     ),
     "Fake News Example": (
         "Scientists secretly confirmed a miracle cure that works 100 percent in two days, "
-        "but the media is hiding the truth from the public."
+        "and the media is hiding the truth from the public."
     ),
 }
 
@@ -412,11 +411,10 @@ else:
         lr_pred = int(fake_models["Logistic Regression"].predict([cleaned_text])[0])
         pa_pred = int(fake_models["Passive Aggressive"].predict([cleaned_text])[0])
 
-        # Majority-like decision with Logistic Regression as tiebreaker
-        if lr_pred == pa_pred:
-            final_pred = lr_pred
+        if lr_pred == 0 or pa_pred == 0:
+            final_pred = 0
         else:
-            final_pred = lr_pred
+            final_pred = 1
 
         final_pred, rule_used = apply_news_rules(fake_text, final_pred)
 
