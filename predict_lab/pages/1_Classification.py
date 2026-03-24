@@ -12,6 +12,7 @@ REPORTS_DIR = BASE_DIR / "reports"
 
 data = pd.read_csv(DATA_DIR / "loan_sanction_train.csv")
 
+
 def preprocess_data(df):
     df = df.copy()
 
@@ -51,12 +52,9 @@ def preprocess_data(df):
 
     return df
 
+
 processed_data = preprocess_data(data)
 
-
-# -----------------------------
-# Split features and target
-# -----------------------------
 X = processed_data.drop("Loan_Status", axis=1)
 y = processed_data["Loan_Status"]
 
@@ -66,23 +64,14 @@ x_train, x_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-# -----------------------------
-# Load models
-# -----------------------------
-joblib.load(MODELS_DIR / "classification_model.pkl")
+# Load models properly
+prediction_model = joblib.load(MODELS_DIR / "classification_model.pkl")
+rf_model = joblib.load(REPORTS_DIR / "rf_model.joblib")
+lr_model = joblib.load(REPORTS_DIR / "lr_model.joblib")
 
-joblib.load(REPORTS_DIR / "rf_model.joblib")
-joblib.load(REPORTS_DIR / "lr_model.joblib")
-
-# -----------------------------
-# App title
-# -----------------------------
-st.title("🏦 Loan Approval Prediction")
+st.title("Loan Approval Prediction")
 st.write("Fill in the applicant details below to predict loan approval status.")
 
-# -----------------------------
-# Input layout
-# -----------------------------
 col1, col2 = st.columns(2)
 
 with col1:
@@ -100,9 +89,6 @@ with col2:
     loan_amount = st.number_input("Loan Amount", min_value=0.0, value=120.0, step=1.0)
     credit_history = st.selectbox("Credit History", [1, 0])
 
-# -----------------------------
-# Encode user input
-# -----------------------------
 gender_val = 1 if gender == "Male" else 0
 married_val = 1 if married == "Yes" else 0
 education_val = 1 if education == "Graduate" else 0
@@ -111,9 +97,6 @@ self_employed_val = 1 if self_employed == "Yes" else 0
 property_area_semiurban = 1 if property_area == "Semiurban" else 0
 property_area_urban = 1 if property_area == "Urban" else 0
 
-# -----------------------------
-# Prediction
-# -----------------------------
 if st.button("Predict Loan Status"):
     user_data = pd.DataFrame([{
         "Gender": gender_val,
@@ -131,7 +114,6 @@ if st.button("Predict Loan Status"):
     }])
 
     user_data = user_data.reindex(columns=feature_columns, fill_value=0)
-
     prediction = prediction_model.predict(user_data)
 
     st.subheader("Prediction Result")
@@ -143,16 +125,13 @@ if st.button("Predict Loan Status"):
         pred_value = 0
 
     if pred_value == 1:
-        st.success("✅ Loan Approved")
+        st.success("Loan Approved")
     else:
-        st.error("❌ Loan Rejected")
+        st.error("Loan Rejected")
 
     with st.expander("See Input Data Sent to Model"):
         st.dataframe(user_data)
 
-# -----------------------------
-# Model comparison
-# -----------------------------
 st.markdown("---")
 st.title("Model Performance Comparison")
 
@@ -161,10 +140,10 @@ lr_pred = lr_model.predict(x_test)
 
 rf_pred = pd.Series(rf_pred).replace({"Y": 1, "N": 0})
 lr_pred = pd.Series(lr_pred).replace({"Y": 1, "N": 0})
-y_test = pd.Series(y_test).replace({"Y": 1, "N": 0})
+y_test_eval = pd.Series(y_test).replace({"Y": 1, "N": 0})
 
-rf_accuracy = accuracy_score(y_test, rf_pred)
-lr_accuracy = accuracy_score(y_test, lr_pred)
+rf_accuracy = accuracy_score(y_test_eval, rf_pred)
+lr_accuracy = accuracy_score(y_test_eval, lr_pred)
 
 comp_col1, comp_col2 = st.columns(2)
 
@@ -172,13 +151,13 @@ with comp_col1:
     st.subheader("Logistic Regression")
     st.write("Accuracy:", round(lr_accuracy, 3))
     st.text("Classification Report")
-    st.text(classification_report(y_test, lr_pred))
+    st.text(classification_report(y_test_eval, lr_pred))
 
 with comp_col2:
     st.subheader("Random Forest")
     st.write("Accuracy:", round(rf_accuracy, 3))
     st.text("Classification Report")
-    st.text(classification_report(y_test, rf_pred))
+    st.text(classification_report(y_test_eval, rf_pred))
 
 if rf_accuracy > lr_accuracy:
     st.success(f"Best Model: Random Forest ({rf_accuracy:.3f})")
