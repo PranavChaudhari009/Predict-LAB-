@@ -9,6 +9,11 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = BASE_DIR / "data"
+
 
 
 st.set_page_config(page_title="PredictLab NLP", layout="wide")
@@ -61,7 +66,8 @@ def apply_fake_news_rules(text: str, prediction: int):
 
 @st.cache_data
 def load_spam_data():
-    data = pd.read_csv("data/spam.csv", encoding="latin1")
+    pd.read_csv(DATA_DIR / "spam.csv", ...)
+
     data = data.rename(columns={"v1": "label", "v2": "message"})
     data = data[["label", "message"]].dropna().copy()
     data["label"] = data["label"].map({"ham": 0, "spam": 1})
@@ -71,7 +77,8 @@ def load_spam_data():
 
 @st.cache_data
 def load_sentiment_data(sample_size: int = 40000):
-    data = pd.read_csv("data/Twitter_Data.csv", usecols=["clean_text", "category"])
+    pd.read_csv(DATA_DIR / "Twitter_Data.csv", ...)
+
     data["clean_text"] = data["clean_text"].fillna("").astype(str).apply(clean_text)
     data["category"] = pd.to_numeric(data["category"], errors="coerce")
     data = data.dropna(subset=["category"]).copy()
@@ -90,8 +97,8 @@ def load_sentiment_data(sample_size: int = 40000):
 
 @st.cache_data
 def load_fake_news_data(sample_size: int = 30000):
-    data = pd.read_csv(
-        "data/WELFake_Dataset.csv",
+    pd.read_csv(DATA_DIR / "WELFake_Dataset.csv",
+
         usecols=["title", "text", "label"],
         engine="python",
         on_bad_lines="skip",
