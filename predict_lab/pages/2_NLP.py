@@ -105,7 +105,8 @@ def load_sentiment_data(sample_size: int = 40000):
 
 @st.cache_data
 def load_fake_news_data(sample_size: int = 30000):
-    fake_path = DATA_DIR / "WELFake_Dataset.csv"
+    fake_path = DATA_DIR / "WELFake_sample.csv"
+
     ensure_file_exists(fake_path)
 
     data = pd.read_csv(
