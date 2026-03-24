@@ -9,7 +9,10 @@ from sklearn.model_selection import train_test_split
 
 st.set_page_config(page_title="House Price Prediction", layout="wide")
 
-DATA_PATH = "data/house_price_dataset_india_12k.csv"
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_PATH = BASE_DIR / "data" / "house_price_dataset_india_12k.csv"
+
 TARGET_COLUMN = "Market_Price_INR"
 DROP_COLUMNS = ["House_ID", "Market_Price_INR", "Price_per_sqft_INR"]
 CATEGORICAL_COLUMNS = ["City", "Locality_Tier", "Furnishing"]
