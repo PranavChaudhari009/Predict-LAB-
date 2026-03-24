@@ -34,7 +34,9 @@ def render_label(text: str, color: str):
     )
 
 
-def apply_fake_news_rules(text: str, prediction: int):
+def apply_news_rules(text: str, prediction: int):
+    text_lower = text.lower()
+
     fake_patterns = [
         r"\bshocking\b",
         r"\bsecret\b",
@@ -50,16 +52,38 @@ def apply_fake_news_rules(text: str, prediction: int):
         r"\bscientists confirm\b",
         r"\bscientists secretly confirmed\b",
         r"\bmedia is hiding\b",
-        r"\bfor \d+ days\b",
         r"\b100%\b",
         r"\b100 percent\b",
         r"\bguaranteed\b",
     ]
 
-    fake_hits = sum(bool(re.search(pattern, text.lower())) for pattern in fake_patterns)
-    if fake_hits >= 2:
-        return 0, True
-    return prediction, False
+    real_patterns = [
+        r"\bgovernment\b",
+        r"\bministry\b",
+        r"\badministration\b",
+        r"\bofficial\b",
+        r"\breport\b",
+        r"\bannounced\b",
+        r"\baccording to\b",
+        r"\bdata\b",
+        r"\bcommittee\b",
+        r"\bdepartment\b",
+        r"\bpolicy\b",
+        r"\bstatement\b",
+        r"\btransport\b",
+        r"\bcity\b",
+        r"\bpublic\b",
+    ]
+
+    fake_hits = sum(bool(re.search(pattern, text_lower)) for pattern in fake_patterns)
+    real_hits = sum(bool(re.search(pattern, text_lower)) for pattern in real_patterns)
+
+    if fake_hits >= 2 and real_hits == 0:
+        return 0, "fake_rule"
+    if real_hits >= 2 and fake_hits == 0:
+        return 1, "real_rule"
+
+    return prediction, None
 
 
 def ensure_file_exists(file_path: Path):
@@ -106,7 +130,6 @@ def load_sentiment_data(sample_size: int = 40000):
 @st.cache_data
 def load_fake_news_data(sample_size: int = 30000):
     fake_path = DATA_DIR / "WELFake_sample.csv"
-
     ensure_file_exists(fake_path)
 
     data = pd.read_csv(
@@ -258,8 +281,15 @@ SENTIMENT_EXAMPLES = {
 }
 
 FAKE_NEWS_EXAMPLES = {
-    "Real News Example": "The city administration announced a new public transport plan after reviewing traffic data and consulting urban development experts.",
-    "Fake News Example": "Scientists secretly confirmed a miracle cure that works 100 percent in two days, but the media is hiding the truth.",
+    "Real News Example": (
+        "The city administration announced a new public transport plan on Tuesday after reviewing "
+        "traffic data, consulting urban development experts, and publishing an official statement "
+        "through the transport department."
+    ),
+    "Fake News Example": (
+        "Scientists secretly confirmed a miracle cure that works 100 percent in two days, "
+        "but the media is hiding the truth from the public."
+    ),
 }
 
 st.title("PredictLab NLP Studio")
@@ -365,7 +395,6 @@ else:
     st.write("Classify news text as real or fake and compare two fake-news detection models.")
 
     fake_models, fake_metrics, fake_best_model_name = train_fake_news_models()
-    fake_best_model = fake_models[fake_best_model_name]
 
     col1, col2 = st.columns(2)
     with col1:
@@ -378,16 +407,28 @@ else:
     fake_text = st.text_area("Enter News Text", height=200, key="fake_text_area")
 
     if st.button("Predict News Type"):
-        fake_prediction = int(fake_best_model.predict([clean_text(fake_text)])[0])
-        fake_prediction, rule_applied = apply_fake_news_rules(fake_text, fake_prediction)
+        cleaned_text = clean_text(fake_text)
 
-        if fake_prediction == 1:
+        lr_pred = int(fake_models["Logistic Regression"].predict([cleaned_text])[0])
+        pa_pred = int(fake_models["Passive Aggressive"].predict([cleaned_text])[0])
+
+        # Majority-like decision with Logistic Regression as tiebreaker
+        if lr_pred == pa_pred:
+            final_pred = lr_pred
+        else:
+            final_pred = lr_pred
+
+        final_pred, rule_used = apply_news_rules(fake_text, final_pred)
+
+        if final_pred == 1:
             render_label("Real News", "green")
         else:
             render_label("Fake News", "red")
 
-        if rule_applied:
+        if rule_used == "fake_rule":
             st.warning("Safety rule applied: sensational fake-news patterns were detected.")
+        elif rule_used == "real_rule":
+            st.info("Real-news rule applied: official/news-report wording was detected.")
 
     st.markdown("---")
     st.subheader("Model Performance Comparison")
