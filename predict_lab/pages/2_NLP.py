@@ -1,5 +1,6 @@
 import re
 import string
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -10,28 +11,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 
-from pathlib import Path
+st.set_page_config(page_title="PredictLab NLP", layout="wide")
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BASE_DIR / "data"
-
-if not DATA_DIR.exists():
-    DATA_DIR = Path(__file__).resolve().parents[2] / "predict_lab" / "data"
-    
-spam_path = DATA_DIR / "spam.csv"
-if not spam_path.exists():
-    st.error(f"Missing file: {spam_path}")
-    st.stop()
-data = pd.read_csv(spam_path, encoding="latin1")
-    
-    
-
-
-
-
-
-
-st.set_page_config(page_title="PredictLab NLP", layout="wide")
 
 
 def clean_text(text: str) -> str:
@@ -79,10 +62,18 @@ def apply_fake_news_rules(text: str, prediction: int):
     return prediction, False
 
 
+def ensure_file_exists(file_path: Path):
+    if not file_path.exists():
+        st.error(f"Missing file: {file_path}")
+        st.stop()
+
+
 @st.cache_data
 def load_spam_data():
-    pd.read_csv(DATA_DIR / "spam.csv", ...)
+    spam_path = DATA_DIR / "spam.csv"
+    ensure_file_exists(spam_path)
 
+    data = pd.read_csv(spam_path, encoding="latin1")
     data = data.rename(columns={"v1": "label", "v2": "message"})
     data = data[["label", "message"]].dropna().copy()
     data["label"] = data["label"].map({"ham": 0, "spam": 1})
@@ -92,8 +83,10 @@ def load_spam_data():
 
 @st.cache_data
 def load_sentiment_data(sample_size: int = 40000):
-    pd.read_csv(DATA_DIR / "Twitter_Data.csv", ...)
+    sentiment_path = DATA_DIR / "Twitter_Data.csv"
+    ensure_file_exists(sentiment_path)
 
+    data = pd.read_csv(sentiment_path, usecols=["clean_text", "category"])
     data["clean_text"] = data["clean_text"].fillna("").astype(str).apply(clean_text)
     data["category"] = pd.to_numeric(data["category"], errors="coerce")
     data = data.dropna(subset=["category"]).copy()
@@ -112,8 +105,11 @@ def load_sentiment_data(sample_size: int = 40000):
 
 @st.cache_data
 def load_fake_news_data(sample_size: int = 30000):
-    pd.read_csv(DATA_DIR / "WELFake_Dataset.csv",
+    fake_path = DATA_DIR / "WELFake_Dataset.csv"
+    ensure_file_exists(fake_path)
 
+    data = pd.read_csv(
+        fake_path,
         usecols=["title", "text", "label"],
         engine="python",
         on_bad_lines="skip",
@@ -265,7 +261,6 @@ FAKE_NEWS_EXAMPLES = {
     "Fake News Example": "Scientists secretly confirmed a miracle cure that works 100 percent in two days, but the media is hiding the truth.",
 }
 
-
 st.title("PredictLab NLP Studio")
 st.write(
     "This page combines three NLP projects: spam email detection, sentiment analysis, and fake news detection."
@@ -284,17 +279,17 @@ if selected_section == "Spam Email Detection":
     spam_models, spam_metrics, spam_best_model_name = train_spam_models()
     spam_best_model = spam_models[spam_best_model_name]
 
-    spam_btn_col1, spam_btn_col2 = st.columns(2)
-    with spam_btn_col1:
-        if st.button("Load Spam Example", key="spam_example_btn"):
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Load Spam Example"):
             st.session_state["spam_text_area"] = SPAM_EXAMPLES["Spam Example"]
-    with spam_btn_col2:
-        if st.button("Load Ham Example", key="ham_example_btn"):
+    with col2:
+        if st.button("Load Ham Example"):
             st.session_state["spam_text_area"] = SPAM_EXAMPLES["Ham Example"]
 
     spam_text = st.text_area("Enter Email Text", height=180, key="spam_text_area")
 
-    if st.button("Predict Email Type", key="predict_spam"):
+    if st.button("Predict Email Type"):
         spam_prediction = int(spam_best_model.predict([clean_text(spam_text)])[0])
         if spam_prediction == 1:
             render_label("Spam Email", "red")
@@ -303,15 +298,15 @@ if selected_section == "Spam Email Detection":
 
     st.markdown("---")
     st.subheader("Model Performance Comparison")
-    spam_metric_col1, spam_metric_col2 = st.columns(2)
+    col1, col2 = st.columns(2)
     model_names = list(spam_metrics.keys())
 
-    with spam_metric_col1:
+    with col1:
         st.markdown(f"**{model_names[0]}**")
         st.write("Accuracy:", f"{spam_metrics[model_names[0]]['accuracy']:.3f}")
         st.write("F1 Score:", f"{spam_metrics[model_names[0]]['f1']:.3f}")
 
-    with spam_metric_col2:
+    with col2:
         st.markdown(f"**{model_names[1]}**")
         st.write("Accuracy:", f"{spam_metrics[model_names[1]]['accuracy']:.3f}")
         st.write("F1 Score:", f"{spam_metrics[model_names[1]]['f1']:.3f}")
@@ -325,20 +320,20 @@ elif selected_section == "Sentiment Analysis":
     sentiment_models, sentiment_metrics, sentiment_best_model_name = train_sentiment_models()
     sentiment_best_model = sentiment_models[sentiment_best_model_name]
 
-    sent_btn_col1, sent_btn_col2, sent_btn_col3 = st.columns(3)
-    with sent_btn_col1:
-        if st.button("Load Positive Example", key="positive_example_btn"):
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("Load Positive Example"):
             st.session_state["sentiment_text_area"] = SENTIMENT_EXAMPLES["Positive Example"]
-    with sent_btn_col2:
-        if st.button("Load Negative Example", key="negative_example_btn"):
+    with col2:
+        if st.button("Load Negative Example"):
             st.session_state["sentiment_text_area"] = SENTIMENT_EXAMPLES["Negative Example"]
-    with sent_btn_col3:
-        if st.button("Load Neutral Example", key="neutral_example_btn"):
+    with col3:
+        if st.button("Load Neutral Example"):
             st.session_state["sentiment_text_area"] = SENTIMENT_EXAMPLES["Neutral Example"]
 
     sentiment_text = st.text_area("Enter Comment Text", height=180, key="sentiment_text_area")
 
-    if st.button("Predict Sentiment", key="predict_sentiment"):
+    if st.button("Predict Sentiment"):
         sentiment_prediction = int(sentiment_best_model.predict([clean_text(sentiment_text)])[0])
         if sentiment_prediction == 1:
             render_label("Positive", "green")
@@ -349,18 +344,18 @@ elif selected_section == "Sentiment Analysis":
 
     st.markdown("---")
     st.subheader("Model Performance Comparison")
-    sentiment_metric_col1, sentiment_metric_col2 = st.columns(2)
-    sentiment_model_names = list(sentiment_metrics.keys())
+    col1, col2 = st.columns(2)
+    model_names = list(sentiment_metrics.keys())
 
-    with sentiment_metric_col1:
-        st.markdown(f"**{sentiment_model_names[0]}**")
-        st.write("Accuracy:", f"{sentiment_metrics[sentiment_model_names[0]]['accuracy']:.3f}")
-        st.write("Macro F1:", f"{sentiment_metrics[sentiment_model_names[0]]['macro_f1']:.3f}")
+    with col1:
+        st.markdown(f"**{model_names[0]}**")
+        st.write("Accuracy:", f"{sentiment_metrics[model_names[0]]['accuracy']:.3f}")
+        st.write("Macro F1:", f"{sentiment_metrics[model_names[0]]['macro_f1']:.3f}")
 
-    with sentiment_metric_col2:
-        st.markdown(f"**{sentiment_model_names[1]}**")
-        st.write("Accuracy:", f"{sentiment_metrics[sentiment_model_names[1]]['accuracy']:.3f}")
-        st.write("Macro F1:", f"{sentiment_metrics[sentiment_model_names[1]]['macro_f1']:.3f}")
+    with col2:
+        st.markdown(f"**{model_names[1]}**")
+        st.write("Accuracy:", f"{sentiment_metrics[model_names[1]]['accuracy']:.3f}")
+        st.write("Macro F1:", f"{sentiment_metrics[model_names[1]]['macro_f1']:.3f}")
 
     st.info(f"Best sentiment model: {sentiment_best_model_name}")
 
@@ -371,39 +366,41 @@ else:
     fake_models, fake_metrics, fake_best_model_name = train_fake_news_models()
     fake_best_model = fake_models[fake_best_model_name]
 
-    fake_btn_col1, fake_btn_col2 = st.columns(2)
-    with fake_btn_col1:
-        if st.button("Load Real News Example", key="real_news_btn"):
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Load Real News Example"):
             st.session_state["fake_text_area"] = FAKE_NEWS_EXAMPLES["Real News Example"]
-    with fake_btn_col2:
-        if st.button("Load Fake News Example", key="fake_news_btn"):
+    with col2:
+        if st.button("Load Fake News Example"):
             st.session_state["fake_text_area"] = FAKE_NEWS_EXAMPLES["Fake News Example"]
 
     fake_text = st.text_area("Enter News Text", height=200, key="fake_text_area")
 
-    if st.button("Predict News Type", key="predict_fake_news"):
+    if st.button("Predict News Type"):
         fake_prediction = int(fake_best_model.predict([clean_text(fake_text)])[0])
         fake_prediction, rule_applied = apply_fake_news_rules(fake_text, fake_prediction)
+
         if fake_prediction == 1:
             render_label("Real News", "green")
         else:
             render_label("Fake News", "red")
+
         if rule_applied:
             st.warning("Safety rule applied: sensational fake-news patterns were detected.")
 
     st.markdown("---")
     st.subheader("Model Performance Comparison")
-    fake_metric_col1, fake_metric_col2 = st.columns(2)
-    fake_model_names = list(fake_metrics.keys())
+    col1, col2 = st.columns(2)
+    model_names = list(fake_metrics.keys())
 
-    with fake_metric_col1:
-        st.markdown(f"**{fake_model_names[0]}**")
-        st.write("Accuracy:", f"{fake_metrics[fake_model_names[0]]['accuracy']:.3f}")
-        st.write("Fake F1:", f"{fake_metrics[fake_model_names[0]]['fake_f1']:.3f}")
+    with col1:
+        st.markdown(f"**{model_names[0]}**")
+        st.write("Accuracy:", f"{fake_metrics[model_names[0]]['accuracy']:.3f}")
+        st.write("Fake F1:", f"{fake_metrics[model_names[0]]['fake_f1']:.3f}")
 
-    with fake_metric_col2:
-        st.markdown(f"**{fake_model_names[1]}**")
-        st.write("Accuracy:", f"{fake_metrics[fake_model_names[1]]['accuracy']:.3f}")
-        st.write("Fake F1:", f"{fake_metrics[fake_model_names[1]]['fake_f1']:.3f}")
+    with col2:
+        st.markdown(f"**{model_names[1]}**")
+        st.write("Accuracy:", f"{fake_metrics[model_names[1]]['accuracy']:.3f}")
+        st.write("Fake F1:", f"{fake_metrics[model_names[1]]['fake_f1']:.3f}")
 
     st.info(f"Best fake-news model: {fake_best_model_name}")
