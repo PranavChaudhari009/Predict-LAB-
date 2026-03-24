@@ -4,6 +4,14 @@ import joblib
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = BASE_DIR / "data"
+MODELS_DIR = BASE_DIR / "models"
+REPORTS_DIR = BASE_DIR / "reports"
+
+
 # -----------------------------
 # Page config
 # -----------------------------
@@ -12,7 +20,7 @@ st.set_page_config(page_title="Loan Approval Predictor", page_icon="🏦", layou
 # -----------------------------
 # Load dataset
 # -----------------------------
-data = pd.read_csv("data/loan_sanction_train.csv")
+pd.read_csv(DATA_DIR / "loan_sanction_train.csv")
 
 # -----------------------------
 # Preprocessing function
@@ -82,9 +90,10 @@ x_train, x_test, y_train, y_test = train_test_split(
 # -----------------------------
 # Load models
 # -----------------------------
-prediction_model = joblib.load("models/classification_model.pkl")
-rf_model = joblib.load("reports/rf_model.joblib")
-lr_model = joblib.load("reports/lr_model.joblib")
+joblib.load(MODELS_DIR / "classification_model.pkl")
+
+joblib.load(REPORTS_DIR / "rf_model.joblib")
+joblib.load(REPORTS_DIR / "lr_model.joblib")
 
 # -----------------------------
 # App title
