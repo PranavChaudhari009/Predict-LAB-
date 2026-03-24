@@ -22,6 +22,9 @@ st.set_page_config(page_title="Loan Approval Predictor", page_icon="🏦", layou
 # -----------------------------
 pd.read_csv(DATA_DIR / "loan_sanction_train.csv")
 
+processed_data = preprocess_data(data)
+
+
 # -----------------------------
 # Preprocessing function
 # -----------------------------
