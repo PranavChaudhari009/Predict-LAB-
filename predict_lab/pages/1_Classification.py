@@ -1,41 +1,23 @@
 import streamlit as st
 import pandas as pd
 import joblib
+from pathlib import Path
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
-
-from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BASE_DIR / "data"
 MODELS_DIR = BASE_DIR / "models"
 REPORTS_DIR = BASE_DIR / "reports"
 
+data = pd.read_csv(DATA_DIR / "loan_sanction_train.csv")
 
-# -----------------------------
-# Page config
-# -----------------------------
-st.set_page_config(page_title="Loan Approval Predictor", page_icon="🏦", layout="wide")
-
-# -----------------------------
-# Load dataset
-# -----------------------------
-pd.read_csv(DATA_DIR / "loan_sanction_train.csv")
-
-processed_data = preprocess_data(data)
-
-
-# -----------------------------
-# Preprocessing function
-# -----------------------------
 def preprocess_data(df):
     df = df.copy()
 
-    # Drop Loan_ID
     if "Loan_ID" in df.columns:
         df = df.drop("Loan_ID", axis=1)
 
-    # Fill missing values
     mode_cols = ["Gender", "Married", "Dependents", "Self_Employed", "Credit_History", "Loan_Amount_Term"]
     for col in mode_cols:
         if col in df.columns:
@@ -44,7 +26,6 @@ def preprocess_data(df):
     if "LoanAmount" in df.columns:
         df["LoanAmount"] = df["LoanAmount"].fillna(df["LoanAmount"].median())
 
-    # Encode binary categorical columns
     if "Gender" in df.columns:
         df["Gender"] = df["Gender"].map({"Male": 1, "Female": 0})
 
@@ -57,26 +38,21 @@ def preprocess_data(df):
     if "Self_Employed" in df.columns:
         df["Self_Employed"] = df["Self_Employed"].map({"Yes": 1, "No": 0})
 
-    # Convert Dependents
     if "Dependents" in df.columns:
         df["Dependents"] = df["Dependents"].replace("3+", 3)
         df["Dependents"] = pd.to_numeric(df["Dependents"], errors="coerce")
         df["Dependents"] = df["Dependents"].fillna(df["Dependents"].mode()[0])
 
-    # One-hot encode Property_Area
     if "Property_Area" in df.columns:
         df = pd.get_dummies(df, columns=["Property_Area"], drop_first=True)
 
-    # Map Loan_Status
     if "Loan_Status" in df.columns:
         df["Loan_Status"] = df["Loan_Status"].replace({"Y": 1, "N": 0})
 
     return df
 
-# -----------------------------
-# Preprocess dataset
-# -----------------------------
 processed_data = preprocess_data(data)
+
 
 # -----------------------------
 # Split features and target
