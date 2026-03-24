@@ -9,10 +9,25 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
+
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BASE_DIR / "data"
+
+if not DATA_DIR.exists():
+    DATA_DIR = Path(__file__).resolve().parents[2] / "predict_lab" / "data"
+    
+spam_path = DATA_DIR / "spam.csv"
+if not spam_path.exists():
+    st.error(f"Missing file: {spam_path}")
+    st.stop()
+data = pd.read_csv(spam_path, encoding="latin1")
+    
+    
+
+
+
 
 
 
