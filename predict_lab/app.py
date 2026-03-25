@@ -8,7 +8,7 @@ st.write("""
 Welcome to PredictLab.
 
 This platform demonstrates multiple machine learning workflows:
-- Classification 
+- Classification,
          Loan Approval Prediction 
 - Regression
          House Price Prediction 
