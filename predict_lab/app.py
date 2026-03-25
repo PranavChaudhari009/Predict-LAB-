@@ -34,7 +34,7 @@ with col2:
     st.write("House Price Prediction")
 
     st.header("Clustering")
-
+    st.write("Customer Chrun")
     st.header("Recommendation System")
     st.write("E-commerce Product Recommendations")
 
