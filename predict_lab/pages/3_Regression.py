@@ -182,6 +182,8 @@ else:
     st.info(f"Both models have the same R2 score: {lr_metrics['R2']:.3f}")
 
 
+st.header("Data Visualization")
+
 col1, col2 = st.columns(2)
 
 with col1:
