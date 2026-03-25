@@ -27,7 +27,7 @@ with col1:
 
     st.header("Time Series")
     st.write("Stock Price Movement")
-
+-----------------------------------------------------------------------------------------------------------------------
 # RIGHT COLUMN
 with col2:
     st.header("Regression")
