@@ -11,10 +11,10 @@ This platform demonstrates multiple machine learning workflows:
 """)
 
 st.header("Classification")
-st.subheader("Loan Approval Prediction")
+st.write("Loan Approval Prediction")
 
 st.header("Regression")
-st.subheader("House Price Prediction")
+st.write("House Price Prediction")
 
 st.header("NLP")
 st.write("1. Email Spam Classifier")
@@ -22,11 +22,12 @@ st.write("2. Comment Sentiment Analysis")
 st.write("3. Fake News Detection")
 
 st.header("Clustering")
+st.write("Customer chrun")
 
 st.header("Time Series")
-st.subheader("Stock Price Movement")
+st.write("Stock Price Movement")
 
 st.header("Recommendation System")
-st.subheader("E-commerce Product Recommendations")
+st.write("E-commerce Product Recommendations")
 
 st.info("Use the sidebar to navigate between modules.")
