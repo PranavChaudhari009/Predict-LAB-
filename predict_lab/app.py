@@ -35,6 +35,8 @@ with col2:
 
     st.header("Clustering")
     st.write("Customer Chrun")
+
+
     
     st.header("Recommendation System")
     st.write("E-commerce Product Recommendations")
