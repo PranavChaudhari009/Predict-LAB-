@@ -180,3 +180,8 @@ elif lr_metrics["R2"] > rf_metrics["R2"]:
     st.success(f"Best Model: Linear Regression ({lr_metrics['R2']:.3f})")
 else:
     st.info(f"Both models have the same R2 score: {lr_metrics['R2']:.3f}")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.image(str(Path(__file__).resolve().parents[1] / "images" / "avsp lr"), caption="st.header("Actual Values VS Prediction")",width=500)
