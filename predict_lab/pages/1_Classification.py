@@ -179,4 +179,4 @@ elif lr_accuracy > rf_accuracy:
 else:
     st.info(f"Both models have the same accuracy: {lr_accuracy:.3f}")
 
-st.image(str(Path(__file__).resolve().parents[1] / "images" / "CM.png"), caption="Confusion Matrix",width=300)
+st.image(str(Path(__file__).resolve().parents[1] / "images" / "CM.png"), caption="Confusion Matrix",width=500)
