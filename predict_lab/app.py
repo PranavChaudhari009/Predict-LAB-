@@ -6,10 +6,11 @@ st.title("PredictLab – ML Prediction Platform")
 
 st.write("""
 Welcome to PredictLab.
-
+""")
 This platform demonstrates multiple machine learning workflows:
+
 st.header(Classification)
-         Loan Approval Prediction 
+st.sudheader(Loan Approval Prediction)
 - Regression
          House Price Prediction 
 - NLP
@@ -22,6 +23,6 @@ st.header(Classification)
          Stock Price Movement 
 - Recommedation system 
          E-commerce Product Recommedations
-""")
+
 
 st.info("Use the sidebar to navigate between modules.")
