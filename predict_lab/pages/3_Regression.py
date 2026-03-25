@@ -202,7 +202,7 @@ with col2:
     st.image(
         str(Path(__file__).resolve().parents[1] / "images" / "avsp rfr.png"),
         caption="Actual Values vs Prediction",
-        width=490
+        width=480
     )
     st.image(
         str(Path(__file__).resolve().parents[1] / "images" / "pvsr rfr.png"),
