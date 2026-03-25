@@ -307,7 +307,11 @@ if selected_section == "Spam Email Detection":
     st.write("Classify an email as spam or ham and compare two text classification models.")
 
     spam_models, spam_metrics, spam_best_model_name = train_spam_models()
-    spam_best_model = spam_models[spam_best_model_name]
+    spam_model_choice = st.selectbox(
+        "Select Spam Model",
+        ["Multinomial Naive Bayes", "Logistic Regression"]
+    )
+    spam_selected_model = spam_models[spam_model_choice]
 
     col1, col2 = st.columns(2)
     with col1:
@@ -320,11 +324,12 @@ if selected_section == "Spam Email Detection":
     spam_text = st.text_area("Enter Email Text", height=180, key="spam_text_area")
 
     if st.button("Predict Email Type"):
-        spam_prediction = int(spam_best_model.predict([clean_text(spam_text)])[0])
+        spam_prediction = int(spam_selected_model.predict([clean_text(spam_text)])[0])
         if spam_prediction == 1:
             render_label("Spam", "red")
         else:
-            render_label("No Spam", "green")
+            render_label("Ham", "green")
+        st.info(f"Prediction made using: {spam_model_choice}")
 
     st.markdown("---")
     st.subheader("NLP Model Comparison & Evaluation")
@@ -343,14 +348,17 @@ if selected_section == "Spam Email Detection":
 
     st.info(f"Best spam model: {spam_best_model_name}")
     st.write("Reason: Higher F1-score indicating better balance between precision and recall for spam detection")
-    
 
 elif selected_section == "Sentiment Analysis":
     st.subheader("Sentiment Analysis")
     st.write("Predict whether a comment is positive, negative, or neutral and compare two models.")
 
     sentiment_models, sentiment_metrics, sentiment_best_model_name = train_sentiment_models()
-    sentiment_best_model = sentiment_models[sentiment_best_model_name]
+    sentiment_model_choice = st.selectbox(
+        "Select Sentiment Model",
+        ["Logistic Regression", "Multinomial Naive Bayes"]
+    )
+    sentiment_selected_model = sentiment_models[sentiment_model_choice]
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -366,13 +374,14 @@ elif selected_section == "Sentiment Analysis":
     sentiment_text = st.text_area("Enter Comment Text", height=180, key="sentiment_text_area")
 
     if st.button("Predict Sentiment"):
-        sentiment_prediction = int(sentiment_best_model.predict([clean_text(sentiment_text)])[0])
+        sentiment_prediction = int(sentiment_selected_model.predict([clean_text(sentiment_text)])[0])
         if sentiment_prediction == 1:
             render_label("Positive", "green")
         elif sentiment_prediction == -1:
             render_label("Negative", "red")
         else:
             render_label("Neutral", "blue")
+        st.info(f"Prediction made using: {sentiment_model_choice}")
 
     st.markdown("---")
     st.subheader("NLP Model Comparison & Evaluation")
@@ -396,6 +405,11 @@ else:
     st.write("Classify news text as real or fake and compare two fake-news detection models.")
 
     fake_models, fake_metrics, fake_best_model_name = train_fake_news_models()
+    fake_model_choice = st.selectbox(
+        "Select Fake News Model",
+        ["Logistic Regression", "Passive Aggressive"]
+    )
+    fake_selected_model = fake_models[fake_model_choice]
 
     col1, col2 = st.columns(2)
     with col1:
@@ -410,20 +424,15 @@ else:
     if st.button("Predict News Type"):
         cleaned_text = clean_text(fake_text)
 
-        lr_pred = int(fake_models["Logistic Regression"].predict([cleaned_text])[0])
-        pa_pred = int(fake_models["Passive Aggressive"].predict([cleaned_text])[0])
-
-        if lr_pred == 0 or pa_pred == 0:
-            final_pred = 0
-        else:
-            final_pred = 1
-
-        final_pred, rule_used = apply_news_rules(fake_text, final_pred)
+        model_prediction = int(fake_selected_model.predict([cleaned_text])[0])
+        final_pred, rule_used = apply_news_rules(fake_text, model_prediction)
 
         if final_pred == 1:
             render_label("Real News", "green")
         else:
             render_label("Fake News", "red")
+
+        st.info(f"Prediction made using: {fake_model_choice}")
 
         if rule_used == "fake_rule":
             st.warning("Safety rule applied: sensational fake-news patterns were detected.")
