@@ -184,4 +184,9 @@ else:
 col1, col2 = st.columns(2)
 
 with col1:
-    st.image(str(Path(__file__).resolve().parents[1] / "images" / "avsp lr"), caption="st.header("Actual Values VS Prediction")",width=500)
+    st.image(str(Path(__file__).resolve().parents[1] / "images" / "avsp lr"), caption="Actual Values VS Prediction",width=500)
+    st.image(str(Path(__file__).resolve().parents[1] / "images" / "pvsr lr"), caption="Residual",width=500)
+with col2:
+    st.image(str(Path(__file__).resolve().parents[1] / "images" / "avsp rfr"), caption="Actual Values VS Prediction",width=500)
+    st.image(str(Path(__file__).resolve().parents[1] / "images" / "avsp rfr"), caption="Residual",width=500)
+    
