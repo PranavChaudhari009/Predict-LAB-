@@ -1,15 +1,14 @@
 import numpy as np
 import pandas as pd
 import streamlit as st
+from pathlib import Path
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 
-
 st.set_page_config(page_title="House Price Prediction", layout="wide")
 
-from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_PATH = BASE_DIR / "data" / "house_price_dataset_india_12k.csv"
 
@@ -19,7 +18,7 @@ CATEGORICAL_COLUMNS = ["City", "Locality_Tier", "Furnishing"]
 
 
 @st.cache_data
-def load_data(path: str) -> pd.DataFrame:
+def load_data(path) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
@@ -70,12 +69,12 @@ def train_models(df: pd.DataFrame):
         "rf_metrics": rf_metrics,
     }
 
+
 try:
     df = load_data(DATA_PATH)
 except FileNotFoundError:
     st.error(
-        "Dataset not found. Add `house_price_dataset_india_12k.csv` to the `data` folder "
-        "and reload the app."
+        "Dataset not found. Add `house_price_dataset_india_12k.csv` to the `data` folder and reload the app."
     )
     st.stop()
 
@@ -89,8 +88,10 @@ rf_model = training_artifacts["rf_model"]
 lr_metrics = training_artifacts["lr_metrics"]
 rf_metrics = training_artifacts["rf_metrics"]
 
-best_model_name = "Random Forest" if rf_metrics["R2"] >= lr_metrics["R2"] else "Linear Regression"
-best_model = rf_model if best_model_name == "Random Forest" else lr_model
+model_choice = st.selectbox(
+    "Select Prediction Model",
+    ["Random Forest", "Linear Regression"]
+)
 
 col1, col2 = st.columns(2)
 
@@ -142,11 +143,16 @@ if st.button("Predict House Price"):
     user_df = pd.get_dummies(user_df, columns=CATEGORICAL_COLUMNS, drop_first=True)
     user_df = user_df.reindex(columns=x_columns, fill_value=0)
 
-    predicted_price = best_model.predict(user_df)[0]
+    if model_choice == "Random Forest":
+        selected_model = rf_model
+    else:
+        selected_model = lr_model
+
+    predicted_price = selected_model.predict(user_df)[0]
 
     st.subheader("Prediction Result")
     st.success(f"Estimated House Price: INR {predicted_price:,.2f}")
-    st.info(f"Prediction made using the best model: {best_model_name}")
+    st.info(f"Prediction made using: {model_choice}")
 
     with st.expander("See input data sent to model"):
         st.dataframe(user_df)
