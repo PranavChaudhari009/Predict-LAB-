@@ -64,13 +64,17 @@ x_train, x_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-# Load models properly
 prediction_model = joblib.load(MODELS_DIR / "classification_model.pkl")
 rf_model = joblib.load(REPORTS_DIR / "rf_model.joblib")
 lr_model = joblib.load(REPORTS_DIR / "lr_model.joblib")
 
 st.title("Loan Approval Prediction")
 st.write("Fill in the applicant details below to predict loan approval status.")
+
+model_choice = st.selectbox(
+    "Select Prediction Model",
+    ["Main Model", "Random Forest", "Logistic Regression"]
+)
 
 col1, col2 = st.columns(2)
 
@@ -114,9 +118,18 @@ if st.button("Predict Loan Status"):
     }])
 
     user_data = user_data.reindex(columns=feature_columns, fill_value=0)
-    prediction = prediction_model.predict(user_data)
+
+    if model_choice == "Main Model":
+        selected_model = prediction_model
+    elif model_choice == "Random Forest":
+        selected_model = rf_model
+    else:
+        selected_model = lr_model
+
+    prediction = selected_model.predict(user_data)
 
     st.subheader("Prediction Result")
+    st.write(f"Model Used: {model_choice}")
 
     pred_value = prediction[0]
     if pred_value == "Y":
