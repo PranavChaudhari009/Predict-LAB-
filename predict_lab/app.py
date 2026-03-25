@@ -16,10 +16,9 @@ st.header("Regression")
 st.subheader("House Price Prediction")
          
 st.header("NLP")
-st.subheader("
-        1-Email Spam Classifer          
-        2-Comment Sentimental Analysis
-        3-Fake News Detection ")
+st.write("1. Email Spam Classifier")
+st.write("2. Comment Sentiment Analysis")
+st.write("3. Fake News Detection")
 
 st.header("Clustering")
 st.subheader("Customer Chrun")
