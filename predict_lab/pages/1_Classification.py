@@ -178,3 +178,6 @@ elif lr_accuracy > rf_accuracy:
     st.success(f"Best Model: Logistic Regression ({lr_accuracy:.3f})")
 else:
     st.info(f"Both models have the same accuracy: {lr_accuracy:.3f}")
+
+
+st.image("CM.png",caption="Confusion matrixs",use_container_width=True)
