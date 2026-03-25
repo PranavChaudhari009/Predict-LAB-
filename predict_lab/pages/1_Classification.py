@@ -180,4 +180,4 @@ else:
     st.info(f"Both models have the same accuracy: {lr_accuracy:.3f}")
 
 
-st.image("CM.png",caption="Confusion matrixs",width=300)
+st.image("images/CM.png",caption="Confusion matrixs",width=300)
