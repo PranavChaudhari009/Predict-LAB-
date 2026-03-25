@@ -6,9 +6,9 @@ st.title("PredictLab – ML Prediction Platform")
 
 st.write("""
 Welcome to PredictLab.
-""")
-This platform demonstrates multiple machine learning workflows:
 
+This platform demonstrates multiple machine learning workflows:
+""")
 st.header(Classification)
 st.sudheader(Loan Approval Prediction)
 - Regression
