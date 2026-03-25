@@ -9,20 +9,20 @@ Welcome to PredictLab.
 
 This platform demonstrates multiple machine learning workflows:
 """)
-st.header(Classification)
+st.header(Classification),
 st.sudheader(Loan Approval Prediction)
-- Regression
-         House Price Prediction 
-- NLP
-         1-Email Spam Classifer          
-         2-Comment Sentimental Analysis
-         3-Fake News Detection 
-- Clustering
+# - Regression
+#          House Price Prediction 
+# - NLP
+#          1-Email Spam Classifer          
+#          2-Comment Sentimental Analysis
+#          3-Fake News Detection 
+# - Clustering
 
-- Time Series
-         Stock Price Movement 
-- Recommedation system 
-         E-commerce Product Recommedations
+# - Time Series
+#          Stock Price Movement 
+# - Recommedation system 
+#          E-commerce Product Recommedations
 
 
 st.info("Use the sidebar to navigate between modules.")
