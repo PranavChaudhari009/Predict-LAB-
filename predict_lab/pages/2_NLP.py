@@ -341,7 +341,9 @@ if selected_section == "Spam Email Detection":
         st.write("Accuracy:", f"{spam_metrics[model_names[1]]['accuracy']:.3f}")
         st.write("F1 Score:", f"{spam_metrics[model_names[1]]['f1']:.3f}")
 
-    st.info(f"Best spam model: {spam_best_model_name}")
+    st.info(f"Best spam model: {spam_best_model_name}
+    Reason: Higher F1-score indicating better balance between precision and recall for spam detection")
+    
 
 elif selected_section == "Sentiment Analysis":
     st.subheader("Sentiment Analysis")
@@ -429,7 +431,7 @@ else:
             st.info("Real-news rule applied: official/news-report wording was detected.")
 
     st.markdown("---")
-    st.subheader("Model Performance Comparison")
+    st.subheader("Model Selection & NLP Evaluation")
     col1, col2 = st.columns(2)
     model_names = list(fake_metrics.keys())
 
