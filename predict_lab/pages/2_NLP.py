@@ -327,7 +327,7 @@ if selected_section == "Spam Email Detection":
             render_label("No Spam", "green")
 
     st.markdown("---")
-    st.subheader("Model Performance Comparison")
+    st.subheader("NLP Model Comparison & Evaluation")
     col1, col2 = st.columns(2)
     model_names = list(spam_metrics.keys())
 
@@ -375,7 +375,7 @@ elif selected_section == "Sentiment Analysis":
             render_label("Neutral", "blue")
 
     st.markdown("---")
-    st.subheader("Model Performance Comparison")
+    st.subheader("NLP Model Comparison & Evaluation")
     col1, col2 = st.columns(2)
     model_names = list(sentiment_metrics.keys())
 
@@ -431,7 +431,7 @@ else:
             st.info("Real-news rule applied: official/news-report wording was detected.")
 
     st.markdown("---")
-    st.subheader("Model Selection & NLP Evaluation")
+    st.subheader("NLP Model Comparison & Evaluation")
     col1, col2 = st.columns(2)
     model_names = list(fake_metrics.keys())
 
