@@ -180,4 +180,3 @@ else:
     st.info(f"Both models have the same accuracy: {lr_accuracy:.3f}")
 
 
-st.image("images/CM.png")
