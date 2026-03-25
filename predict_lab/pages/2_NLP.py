@@ -322,9 +322,9 @@ if selected_section == "Spam Email Detection":
     if st.button("Predict Email Type"):
         spam_prediction = int(spam_best_model.predict([clean_text(spam_text)])[0])
         if spam_prediction == 1:
-            render_label("Spam Email", "red")
+            render_label("Spam", "red")
         else:
-            render_label("No Spam Email", "green")
+            render_label("No Spam", "green")
 
     st.markdown("---")
     st.subheader("Model Performance Comparison")
