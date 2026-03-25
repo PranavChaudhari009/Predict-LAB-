@@ -181,15 +181,32 @@ elif lr_metrics["R2"] > rf_metrics["R2"]:
 else:
     st.info(f"Both models have the same R2 score: {lr_metrics['R2']:.3f}")
 
+
 col1, col2 = st.columns(2)
 
-st.header("Linear Regression")
 with col1:
-    st.image(str(Path(__file__).resolve().parents[1] / "images" / "avsp lr.png"), caption="Actual Values VS Prediction",width=500)
-    st.image(str(Path(__file__).resolve().parents[1] / "images" / "pvsr lr.png"), caption="Residual",width=500)
+    st.subheader("Linear Regression")
+    st.image(
+        str(Path(__file__).resolve().parents[1] / "images" / "avsp lr.png"),
+        caption="Actual Values vs Prediction",
+        width=500
+    )
+    st.image(
+        str(Path(__file__).resolve().parents[1] / "images" / "pvsr lr.png"),
+        caption="Residual",
+        width=500
+    )
 
-st.header("Random Forest Regressor")
 with col2:
-    st.image(str(Path(__file__).resolve().parents[1] / "images" / "avsp rfr.png"), caption="Actual Values VS Prediction",width=500)
-    st.image(str(Path(__file__).resolve().parents[1] / "images" / "avsp rfr.png"), caption="Residual",width=500)
-    
+    st.subheader("Random Forest Regressor")
+    st.image(
+        str(Path(__file__).resolve().parents[1] / "images" / "avsp rfr.png"),
+        caption="Actual Values vs Prediction",
+        width=500
+    )
+    st.image(
+        str(Path(__file__).resolve().parents[1] / "images" / "pvsr rfr.png"),
+        caption="Residual",
+        width=500
+    )
+
