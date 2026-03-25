@@ -324,7 +324,7 @@ if selected_section == "Spam Email Detection":
         if spam_prediction == 1:
             render_label("Spam Email", "red")
         else:
-            render_label("Ham Email", "green")
+            render_label("No Spam Email", "green")
 
     st.markdown("---")
     st.subheader("Model Performance Comparison")
