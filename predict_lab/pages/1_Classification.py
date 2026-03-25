@@ -179,10 +179,4 @@ elif lr_accuracy > rf_accuracy:
 else:
     st.info(f"Both models have the same accuracy: {lr_accuracy:.3f}")
 
-BASE_DIR = Path(__file__).resolve().parents[1]
-IMAGE_PATH = BASE_DIR / "images" / "CM.png"
-
-if IMAGE_PATH.exists():
-    st.image(str(IMAGE_PATH))
-else:
-    st.warning("CM.png not found")
+st.image(str(Path(__file__).resolve().parents[1] / "images" / "CM.png"), caption="Confusion Matrix",width=300)
