@@ -180,3 +180,18 @@ else:
     st.info(f"Both models have the same accuracy: {lr_accuracy:.3f}")
 
 st.image("images/CM.png", caption="Confusion Matrix Comparison", width=300)
+
+import streamlit as st
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(10,6))
+ax.scatter(y_test, lr_pred)
+ax.plot([min(y_test), max(y_test)],
+        [min(y_test), max(y_test)],
+        color='red')
+
+ax.set_xlabel("Actual")
+ax.set_ylabel("Predicted")
+ax.set_title("Actual vs Predicted")
+
+st.pyplot(fig)
