@@ -179,7 +179,7 @@ elif lr_accuracy > rf_accuracy:
 else:
     st.info(f"Both models have the same accuracy: {lr_accuracy:.3f}")
 
-<<<<<<< HEAD
+
 st.image("images/CM.png", caption="Confusion Matrix Comparison", width=300)
 
 import streamlit as st
