@@ -4,6 +4,8 @@ import joblib
 from pathlib import Path
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BASE_DIR / "data"
@@ -183,7 +185,7 @@ else:
 # st.image("images/CM.png", caption="Confusion Matrix Comparison", width=300)
 st.header("Data Visualization")
 import streamlit as st
-import matplotlib.pyplot as plt
+
 
 fig, ax = plt.subplots(figsize=(10,6))
 ax.scatter(y_test, lr_pred)
