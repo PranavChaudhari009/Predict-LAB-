@@ -39,6 +39,6 @@ with col2:
 
     
     st.header("Recommendation System")
-    st.write("E-commerce Product Recommendations")
+    st.write("Game Recommendation System")
 
 st.info("Use the sidebar to navigate between modules.")
