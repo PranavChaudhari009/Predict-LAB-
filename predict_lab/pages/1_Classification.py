@@ -4,6 +4,7 @@ import joblib
 from pathlib import Path
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
+ 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BASE_DIR / "data"
@@ -179,24 +180,10 @@ elif lr_accuracy > rf_accuracy:
 else:
     st.info(f"Both models have the same accuracy: {lr_accuracy:.3f}")
 
-<<<<<<< HEAD
-st.image("images/CM.png", caption="Confusion Matrix Comparison", width=300)
 
-import streamlit as st
-import matplotlib.pyplot as plt
-
-fig, ax = plt.subplots(figsize=(10,6))
-ax.scatter(y_test, lr_pred)
-ax.plot([min(y_test), max(y_test)],
-        [min(y_test), max(y_test)],
-        color='red')
-
-ax.set_xlabel("Actual")
-ax.set_ylabel("Predicted")
-ax.set_title("Actual vs Predicted")
-
-st.pyplot(fig)
-=======
+# st.image("images/CM.png", caption="Confusion Matrix Comparison", width=300)
 st.header("Data Visualization")
+
+
 st.image(str(Path(__file__).resolve().parents[1] / "images" / "CM.png"), caption="Confusion Matrix",width=500)
->>>>>>> a9867759c109b53154abd5f47133c9a2c2c4974c
+

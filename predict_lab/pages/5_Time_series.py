@@ -1,24 +1,30 @@
 import streamlit as st
 import pickle
 import pandas as pd
+from pathlib import Path
 from sklearn.metrics import accuracy_score, classification_report
 
 st.set_page_config(page_title="Time Series Analysis", layout="wide")
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+REPORTS_DIR = BASE_DIR / "reports"
+DATA_DIR = BASE_DIR / "data"
 
 st.title("Time Series Analysis")
 st.write("Fill the following details to predict the next day's stock direction.")
 
 # Load models once
-with open("reports/lr_model.pkl", "rb") as f:
+with open(REPORTS_DIR / "lr_model.pkl", "rb") as f:
     lr_model = pickle.load(f)
 
-with open("reports/rf_model.pkl", "rb") as f:
+with open(REPORTS_DIR / "rf_model.pkl", "rb") as f:
     rf_model = pickle.load(f)
 
 model_choice = st.selectbox("Select Model", ["logistic regression", "random forest"])
 
 # Load and prepare dataset for evaluation
-df = pd.read_csv("data/apple_stock.csv")
+df = pd.read_csv(DATA_DIR / "apple_stock.csv")
+
 df["Date"] = pd.to_datetime(df["Date"])
 df = df.sort_values("Date").drop_duplicates()
 df.set_index("Date", inplace=True)
