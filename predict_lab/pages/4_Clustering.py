@@ -1,3 +1,4 @@
+from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -11,12 +12,15 @@ st.set_page_config(page_title="Fraud Clustering", layout="wide")
 st.title("💳 Credit Card Fraud Detection (Clustering)")
 st.write("Detect suspicious transaction patterns using KMeans and DBSCAN")
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_PATH = BASE_DIR / "data" / "credit_card_fraud_dataset.csv"
+
 # =========================
 # Cached Data Loading + Preprocessing
 # =========================
 @st.cache_data
 def load_and_preprocess_data():
-    df = pd.read_csv("data/credit_card_fraud_dataset.csv").copy()
+    df = pd.read_csv(DATA_PATH).copy()
 
     df["TransactionDate"] = pd.to_datetime(df["TransactionDate"])
     df["Hour"] = df["TransactionDate"].dt.hour
@@ -61,14 +65,8 @@ def compute_pca(X_scaled):
     return pca.fit_transform(X_scaled)
 
 
-# =========================
-# Load Data
-# =========================
 df, X, y, X_scaled, scaler, feature_columns = load_and_preprocess_data()
 
-# =========================
-# Model Selection
-# =========================
 model_choice = st.selectbox("Select Model", ["KMeans", "DBSCAN"])
 
 if model_choice == "KMeans":
@@ -82,9 +80,6 @@ else:
 df = df.copy()
 df["Cluster"] = clusters
 
-# =========================
-# User Input
-# =========================
 st.subheader("🔍 Check New Transaction")
 
 col1, col2 = st.columns(2)
@@ -120,9 +115,6 @@ for loc in ["Houston", "Los Angeles", "New York"]:
 input_df = input_df.reindex(columns=feature_columns, fill_value=0)
 input_scaled = scaler.transform(input_df)
 
-# =========================
-# Prediction
-# =========================
 if st.button("Check Transaction Pattern"):
     if model_choice == "KMeans":
         cluster = model.predict(input_scaled)[0]
@@ -152,11 +144,7 @@ if st.button("Check Transaction Pattern"):
         st.write(f"Neighbors within EPS: {neighbor_count}")
         st.write(f"Nearest Distance: {nearest_distance:.3f}")
 
-# =========================
-# Visualization
-# =========================
 st.subheader("📊 Cluster Visualization")
-
 X_pca = compute_pca(X_scaled)
 
 fig, ax = plt.subplots()
@@ -166,9 +154,6 @@ ax.set_xlabel("PCA 1")
 ax.set_ylabel("PCA 2")
 st.pyplot(fig)
 
-# =========================
-# Cluster Summary
-# =========================
 st.subheader("📋 Cluster Summary")
 summary = df.groupby("Cluster")["IsFraud"].mean().reset_index(name="FraudRate")
 st.dataframe(summary)
