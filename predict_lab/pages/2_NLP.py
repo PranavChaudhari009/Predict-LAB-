@@ -130,12 +130,41 @@ def load_sentiment_data(sample_size: int = 40000):
     sentiment_path = DATA_DIR / "Twitter_Data.csv"
     ensure_file_exists(sentiment_path)
 
-    data = pd.read_csv(sentiment_path, usecols=["clean_text", "category"])
+    # --- FIX: Read all columns first, then detect the right ones ---
+    data = pd.read_csv(sentiment_path)
+    cols = [c.strip().lower() for c in data.columns]
+    data.columns = [c.strip() for c in data.columns]  # strip whitespace from headers
+
+    # Auto-detect text column
+    text_col_candidates = ["clean_text", "text", "tweet", "message", "content", "review"]
+    text_col = next((c for c in data.columns if c.lower() in text_col_candidates), None)
+    if text_col is None:
+        st.error(f"Could not find a text column. Available columns: {data.columns.tolist()}")
+        st.stop()
+
+    # Auto-detect label column
+    label_col_candidates = ["category", "label", "sentiment", "target", "class", "polarity"]
+    label_col = next((c for c in data.columns if c.lower() in label_col_candidates), None)
+    if label_col is None:
+        st.error(f"Could not find a label column. Available columns: {data.columns.tolist()}")
+        st.stop()
+
+    # Standardise to expected names
+    data = data.rename(columns={text_col: "clean_text", label_col: "category"})
+    data = data[["clean_text", "category"]].copy()
+
     data["clean_text"] = data["clean_text"].fillna("").astype(str).apply(clean_text)
     data["category"] = pd.to_numeric(data["category"], errors="coerce")
     data = data.dropna(subset=["category"]).copy()
     data["category"] = data["category"].round().astype(int)
     data = data[data["category"].isin([-1, 0, 1])].copy()
+
+    if data.empty:
+        st.error(
+            "No valid rows found after filtering. "
+            "Ensure the label column contains -1, 0, or 1 values."
+        )
+        st.stop()
 
     if len(data) > sample_size:
         data = (
@@ -229,22 +258,12 @@ def train_spam_models():
 def train_sentiment_models():
     data = load_sentiment_data()
 
-    # Debug: verify column names match what you expect
-    print("Columns available:", data.columns.tolist())
-
-    # FIX: Replace "category" with your actual label column name
-    # Common alternatives: "label", "sentiment", "target", "class"
-    label_col = "category"  # <-- change this if your column has a different name
-
-    if label_col not in data.columns:
-        raise ValueError(f"Column '{label_col}' not found. Available columns: {data.columns.tolist()}")
-
     x_train, x_test, y_train, y_test = train_test_split(
         data["clean_text"],
-        data[label_col],
+        data["category"],
         test_size=0.2,
         random_state=42,
-        stratify=data[label_col],
+        stratify=data["category"],
     )
 
     models = {
