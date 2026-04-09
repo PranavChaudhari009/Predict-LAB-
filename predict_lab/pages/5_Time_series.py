@@ -3,6 +3,7 @@ import pickle
 import pandas as pd
 from pathlib import Path
 from sklearn.metrics import accuracy_score, classification_report
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Time Series Analysis", layout="wide")
 
@@ -10,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 REPORTS_DIR = BASE_DIR / "reports"
 DATA_DIR = BASE_DIR / "data"
 
-st.title("Time Series Analysis")
+st.title("Apple Stock Price Direction Prediction(Time Series Analysis)")
 st.write("Fill the following details to predict the next day's stock direction.")
 
 # Load models once
@@ -20,7 +21,11 @@ with open(REPORTS_DIR / "lr_model.pkl", "rb") as f:
 with open(REPORTS_DIR / "rf_model.pkl", "rb") as f:
     rf_model = pickle.load(f)
 
-model_choice = st.selectbox("Select Model", ["logistic regression", "random forest"])
+# Model selection
+model_choice = st.selectbox(
+    "Select Model",
+    ["Logistic Regression", "Random Forest"]
+)
 
 # Load and prepare dataset for evaluation
 df = pd.read_csv(DATA_DIR / "apple_stock.csv")
@@ -52,7 +57,7 @@ df = df.dropna(subset=feature_columns + ["Target"]).copy()
 X = df[feature_columns]
 y = df["Target"]
 
-# Same evaluation style as training: chronological split
+# Chronological split
 split_index = int(len(df) * 0.8)
 X_test = X.iloc[split_index:]
 y_test = y.iloc[split_index:]
@@ -82,19 +87,38 @@ if st.button("Predict"):
         "Volume_Change": volume_change
     }])
 
-    if model_choice == "logistic regression":
+    # Use selected model
+    if model_choice == "Logistic Regression":
         model = lr_model
     else:
         model = rf_model
 
     prediction = model.predict(input_data)[0]
 
-    st.write(f"Predicted Class: {prediction}")
+    st.subheader("Prediction Result")
+    # Banner like screenshot
+    st.markdown(
+        f"""
+        <div style="
+            background-color:#1e3348;
+            padding:12px 13px;
+            border-radius:5px;
+            margin-bottom:15px;
+        ">
+            <h6 style="color:#3399ff; margin:0;">
+                Prediction made using: {model_choice}
+            </h6>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    
 
     if prediction == 1:
-        st.success("Prediction: Stock price may go UP tomorrow")
+        st.success(f"{model_choice} Prediction: Stock price may go UP tomorrow")
     else:
-        st.error("Prediction: Stock price may go DOWN tomorrow")
+        st.error(f"{model_choice} Prediction: Stock price may go DOWN tomorrow")
 
     with st.expander("See Input Data Sent to Model"):
         st.dataframe(input_data)
@@ -128,3 +152,75 @@ elif lr_accuracy > rf_accuracy:
     st.success(f"Best Model: Logistic Regression ({lr_accuracy:.3f})")
 else:
     st.info(f"Both models have the same accuracy: {lr_accuracy:.3f}")
+
+
+st.header("Data Visualization")
+
+
+
+plot_df = df.iloc[split_index:].copy()
+plot_df["Actual"] = y_test.values
+plot_df["LR_Pred"] = lr_pred
+plot_df["RF_Pred"] = rf_pred
+
+st.subheader("Logistic Regression Prediction vs Actual")
+fig6, ax6 = plt.subplots(figsize=(12, 4))
+ax6.plot(plot_df.index, plot_df["Actual"], label="Actual", color="black")
+ax6.plot(plot_df.index, plot_df["LR_Pred"], label="LR Prediction", color="blue", alpha=0.7)
+ax6.set_title("Logistic Regression vs Actual")
+ax6.set_xlabel("Date")
+ax6.set_ylabel("Direction")
+ax6.legend()
+ax6.grid(True, alpha=0.3)
+st.pyplot(fig6)
+
+st.subheader("Random Forest Prediction vs Actual")
+fig7, ax7 = plt.subplots(figsize=(12, 4))
+ax7.plot(plot_df.index, plot_df["Actual"], label="Actual", color="black")
+ax7.plot(plot_df.index, plot_df["RF_Pred"], label="RF Prediction", color="green", alpha=0.7)
+ax7.set_title("Random Forest vs Actual")
+ax7.set_xlabel("Date")
+ax7.set_ylabel("Direction")
+ax7.legend()
+ax7.grid(True, alpha=0.3)
+st.pyplot(fig7)
+
+st.subheader("Logistic Regression vs Random Forest Predictions")
+fig8, ax8 = plt.subplots(figsize=(12, 4))
+ax8.plot(plot_df.index, plot_df["LR_Pred"], label="Logistic Regression", color="blue")
+ax8.plot(plot_df.index, plot_df["RF_Pred"], label="Random Forest", color="green")
+ax8.set_title("Model Prediction Comparison")
+ax8.set_xlabel("Date")
+ax8.set_ylabel("Predicted Direction")
+ax8.legend()
+ax8.grid(True, alpha=0.3)
+st.pyplot(fig8)
+
+st.subheader("Model Accuracy Comparison")
+fig9, ax9 = plt.subplots(figsize=(8, 5))
+models = ["Logistic Regression", "Random Forest"]
+accuracies = [lr_accuracy, rf_accuracy]
+colors = ["blue", "green"]
+ax9.bar(models, accuracies, color=colors)
+ax9.set_title("Accuracy Comparison of Models")
+ax9.set_ylabel("Accuracy")
+ax9.set_ylim(0, 1)
+for i, v in enumerate(accuracies):
+    ax9.text(i, v + 0.02, f"{v:.3f}", ha="center", fontweight="bold")
+st.pyplot(fig9)
+
+st.subheader("Moving Average Plot")
+
+fig, ax = plt.subplots(figsize=(12, 5))
+
+ax.plot(df.index, df["Close"], label="Close Price", color="blue", alpha=0.6)
+ax.plot(df.index, df["SMA_5"], label="5-Day Moving Average", color="orange", linewidth=2)
+ax.plot(df.index, df["SMA_10"], label="10-Day Moving Average", color="green", linewidth=2)
+
+ax.set_title("Apple Stock Price with Moving Averages")
+ax.set_xlabel("Date")
+ax.set_ylabel("Price")
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+st.pyplot(fig)
