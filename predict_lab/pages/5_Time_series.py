@@ -209,18 +209,3 @@ for i, v in enumerate(accuracies):
     ax9.text(i, v + 0.02, f"{v:.3f}", ha="center", fontweight="bold")
 st.pyplot(fig9)
 
-st.subheader("Moving Average Plot")
-
-fig, ax = plt.subplots(figsize=(12, 5))
-
-ax.plot(df.index, df["Close"], label="Close Price", color="blue", alpha=0.6)
-ax.plot(df.index, df["SMA_5"], label="5-Day Moving Average", color="orange", linewidth=2)
-ax.plot(df.index, df["SMA_10"], label="10-Day Moving Average", color="green", linewidth=2)
-
-ax.set_title("Apple Stock Price with Moving Averages")
-ax.set_xlabel("Date")
-ax.set_ylabel("Price")
-ax.legend()
-ax.grid(True, alpha=0.3)
-
-st.pyplot(fig)
