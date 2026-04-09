@@ -54,6 +54,11 @@ def preprocess_data(df):
     return df
 
 
+def normalize_predictions(series):
+    """Convert predictions to integer 0/1 regardless of whether model returns 'Y'/'N' or 1/0."""
+    return series.map({"Y": 1, "N": 0, 1: 1, 0: 0, "1": 1, "0": 0}).astype(int)
+
+
 processed_data = preprocess_data(data)
 
 X = processed_data.drop("Loan_Status", axis=1)
@@ -132,11 +137,8 @@ if st.button("Predict Loan Status"):
     st.subheader("Prediction Result")
     st.write(f"Model Used: {model_choice}")
 
-    pred_value = prediction[0]
-    if pred_value == "Y":
-        pred_value = 1
-    elif pred_value == "N":
-        pred_value = 0
+    # Normalize prediction to int 0/1 regardless of model output format
+    pred_value = normalize_predictions(pd.Series([prediction[0]])).iloc[0]
 
     if pred_value == 1:
         st.success("Loan Approved")
@@ -149,12 +151,9 @@ if st.button("Predict Loan Status"):
 st.markdown("---")
 st.title("Model Performance Comparison")
 
-rf_pred = rf_model.predict(x_test)
-lr_pred = lr_model.predict(x_test)
-
-rf_pred = pd.Series(rf_pred).replace({"Y": 1, "N": 0})
-lr_pred = pd.Series(lr_pred).replace({"Y": 1, "N": 0})
-y_test_eval = pd.Series(y_test).replace({"Y": 1, "N": 0})
+rf_pred = normalize_predictions(pd.Series(rf_model.predict(x_test)))
+lr_pred = normalize_predictions(pd.Series(lr_model.predict(x_test)))
+y_test_eval = normalize_predictions(pd.Series(y_test.values))
 
 rf_accuracy = accuracy_score(y_test_eval, rf_pred)
 lr_accuracy = accuracy_score(y_test_eval, lr_pred)
@@ -179,10 +178,6 @@ elif lr_accuracy > rf_accuracy:
     st.success(f"Best Model: Logistic Regression ({lr_accuracy:.3f})")
 else:
     st.info(f"Both models have the same accuracy: {lr_accuracy:.3f}")
-
-
-# st.image("images/CM.png", caption="Confusion Matrix Comparison", width=300)
-
 
 
 st.markdown("---")
