@@ -228,12 +228,23 @@ def train_spam_models():
 @st.cache_resource
 def train_sentiment_models():
     data = load_sentiment_data()
+
+    # Debug: verify column names match what you expect
+    print("Columns available:", data.columns.tolist())
+
+    # FIX: Replace "category" with your actual label column name
+    # Common alternatives: "label", "sentiment", "target", "class"
+    label_col = "category"  # <-- change this if your column has a different name
+
+    if label_col not in data.columns:
+        raise ValueError(f"Column '{label_col}' not found. Available columns: {data.columns.tolist()}")
+
     x_train, x_test, y_train, y_test = train_test_split(
         data["clean_text"],
-        data["category"],
+        data[label_col],
         test_size=0.2,
         random_state=42,
-        stratify=data["category"],
+        stratify=data[label_col],
     )
 
     models = {
