@@ -69,7 +69,7 @@ prediction_model = joblib.load(MODELS_DIR / "classification_model.pkl")
 rf_model = joblib.load(REPORTS_DIR / "rf_model.joblib")
 lr_model = joblib.load(REPORTS_DIR / "lr_model.joblib")
 
-st.title("Loan Approval Prediction")
+st.title("Loan Approval Prediction(Classification)")
 st.write("Fill in the applicant details below to predict loan approval status.")
 
 model_choice = st.selectbox(
