@@ -485,3 +485,81 @@ else:
         st.write("Fake F1:", f"{fake_metrics[model_names[1]]['fake_f1']:.3f}")
 
     st.info(f"Best fake-news model: {fake_best_model_name}")
+
+
+import matplotlib.pyplot as plt
+
+st.markdown("---")
+st.header("Model Performance Graphs")
+
+if selected_section == "Spam Email Detection":
+    st.subheader("Spam Model Accuracy and F1 Score")
+
+    model_names = list(spam_metrics.keys())
+    accuracies = [spam_metrics[name]["accuracy"] for name in model_names]
+    f1_scores = [spam_metrics[name]["f1"] for name in model_names]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    x = range(len(model_names))
+    width = 0.35
+
+    ax.bar([i - width / 2 for i in x], accuracies, width=width, label="Accuracy", color="skyblue")
+    ax.bar([i + width / 2 for i in x], f1_scores, width=width, label="F1 Score", color="orange")
+
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(model_names)
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Score")
+    ax.set_title("Spam Detection Model Comparison")
+    ax.legend()
+    ax.grid(axis="y", alpha=0.3)
+
+    st.pyplot(fig)
+
+elif selected_section == "Sentiment Analysis":
+    st.subheader("Sentiment Model Accuracy and Macro F1")
+
+    model_names = list(sentiment_metrics.keys())
+    accuracies = [sentiment_metrics[name]["accuracy"] for name in model_names]
+    macro_f1_scores = [sentiment_metrics[name]["macro_f1"] for name in model_names]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    x = range(len(model_names))
+    width = 0.35
+
+    ax.bar([i - width / 2 for i in x], accuracies, width=width, label="Accuracy", color="lightgreen")
+    ax.bar([i + width / 2 for i in x], macro_f1_scores, width=width, label="Macro F1", color="salmon")
+
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(model_names)
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Score")
+    ax.set_title("Sentiment Analysis Model Comparison")
+    ax.legend()
+    ax.grid(axis="y", alpha=0.3)
+
+    st.pyplot(fig)
+
+elif selected_section == "Fake News Detection":
+    st.subheader("Fake News Model Accuracy and Fake F1")
+
+    model_names = list(fake_metrics.keys())
+    accuracies = [fake_metrics[name]["accuracy"] for name in model_names]
+    fake_f1_scores = [fake_metrics[name]["fake_f1"] for name in model_names]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    x = range(len(model_names))
+    width = 0.35
+
+    ax.bar([i - width / 2 for i in x], accuracies, width=width, label="Accuracy", color="cornflowerblue")
+    ax.bar([i + width / 2 for i in x], fake_f1_scores, width=width, label="Fake F1", color="tomato")
+
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(model_names)
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Score")
+    ax.set_title("Fake News Detection Model Comparison")
+    ax.legend()
+    ax.grid(axis="y", alpha=0.3)
+
+    st.pyplot(fig)
