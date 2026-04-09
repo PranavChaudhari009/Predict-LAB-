@@ -78,7 +78,7 @@ except FileNotFoundError:
     )
     st.stop()
 
-st.title("🏠House Price Prediction")
+st.title("🏠House Price Prediction(Regression)")
 st.write("Fill in the property details below to predict the estimated house price.")
 
 training_artifacts = train_models(df)
