@@ -4,7 +4,7 @@ import joblib
 from pathlib import Path
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
- 
+import matplotlib.pyplot as plt 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BASE_DIR / "data"
@@ -182,8 +182,39 @@ else:
 
 
 # st.image("images/CM.png", caption="Confusion Matrix Comparison", width=300)
+
+
+
+st.markdown("---")
 st.header("Data Visualization")
 
+# 1. Model Accuracy Comparison
+st.subheader("Model Accuracy Comparison")
 
-st.image(str(Path(__file__).resolve().parents[1] / "images" / "CM.png"), caption="Confusion Matrix",width=500)
+fig1, ax1 = plt.subplots(figsize=(8, 5))
+model_names = ["Logistic Regression", "Random Forest"]
+accuracies = [lr_accuracy, rf_accuracy]
+colors = ["skyblue", "lightgreen"]
 
+bars = ax1.bar(model_names, accuracies, color=colors)
+ax1.set_title("Accuracy Comparison of Models")
+ax1.set_ylabel("Accuracy")
+ax1.set_ylim(0, 1)
+for bar, acc in zip(bars, accuracies):
+    ax1.text(
+        bar.get_x() + bar.get_width() / 2,
+        acc + 0.02,
+        f"{acc:.3f}",
+        ha="center",
+        fontweight="bold"
+    )
+
+ax1.grid(axis="y", alpha=0.3)
+st.pyplot(fig1)
+
+st.subheader("Confusion Matrix")
+st.image(
+    str(Path(__file__).resolve().parents[1] / "images" / "CM.png"),
+    caption="Confusion Matrix",
+    width=500
+)
