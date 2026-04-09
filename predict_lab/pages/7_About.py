@@ -35,5 +35,5 @@ st.markdown("""
 ### 🔗 Links
 
 - [GitHub Repository](https://github.com/PranavChaudhari009/Predict-LAB-.git)
-- [LinkedIn](https://www.linkedin.com/in/pranavchaudhari009/)
+
 """)
