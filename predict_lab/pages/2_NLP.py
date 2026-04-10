@@ -130,26 +130,35 @@ def load_sentiment_data(sample_size: int = 40000):
     sentiment_path = DATA_DIR / "Twitter_Data.csv"
     ensure_file_exists(sentiment_path)
 
-    # --- FIX: Read all columns first, then detect the right ones ---
+    # Read all columns — do NOT specify usecols to avoid KeyError on missing names
     data = pd.read_csv(sentiment_path)
-    cols = [c.strip().lower() for c in data.columns]
-    data.columns = [c.strip() for c in data.columns]  # strip whitespace from headers
 
-    # Auto-detect text column
-    text_col_candidates = ["clean_text", "text", "tweet", "message", "content", "review"]
-    text_col = next((c for c in data.columns if c.lower() in text_col_candidates), None)
+    # Strip leading/trailing whitespace from all column names
+    data.columns = data.columns.str.strip()
+
+    # Auto-detect text column (case-insensitive)
+    text_col = None
+    for col in data.columns:
+        if col.lower() in ["clean_text", "text", "tweet", "message", "content"]:
+            text_col = col
+            break
+
+    # Auto-detect label column (case-insensitive)
+    label_col = None
+    for col in data.columns:
+        if col.lower() in ["category", "label", "sentiment", "target", "polarity", "class"]:
+            label_col = col
+            break
+
     if text_col is None:
-        st.error(f"Could not find a text column. Available columns: {data.columns.tolist()}")
+        st.error(f"Text column not found. Columns in your CSV: {data.columns.tolist()}")
         st.stop()
 
-    # Auto-detect label column
-    label_col_candidates = ["category", "label", "sentiment", "target", "class", "polarity"]
-    label_col = next((c for c in data.columns if c.lower() in label_col_candidates), None)
     if label_col is None:
-        st.error(f"Could not find a label column. Available columns: {data.columns.tolist()}")
+        st.error(f"Label column not found. Columns in your CSV: {data.columns.tolist()}")
         st.stop()
 
-    # Standardise to expected names
+    # Standardise column names for the rest of the pipeline
     data = data.rename(columns={text_col: "clean_text", label_col: "category"})
     data = data[["clean_text", "category"]].copy()
 
@@ -161,8 +170,8 @@ def load_sentiment_data(sample_size: int = 40000):
 
     if data.empty:
         st.error(
-            "No valid rows found after filtering. "
-            "Ensure the label column contains -1, 0, or 1 values."
+            "No valid rows after filtering. "
+            "Make sure the label column has values -1, 0, or 1."
         )
         st.stop()
 
@@ -257,7 +266,6 @@ def train_spam_models():
 @st.cache_resource
 def train_sentiment_models():
     data = load_sentiment_data()
-
     x_train, x_test, y_train, y_test = train_test_split(
         data["clean_text"],
         data["category"],
