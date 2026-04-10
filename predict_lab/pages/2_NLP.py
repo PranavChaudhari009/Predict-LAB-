@@ -2,6 +2,7 @@ import re
 import string
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -18,6 +19,9 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BASE_DIR / "data"
 
 
+# -----------------------------
+# Utility Functions
+# -----------------------------
 def clean_text(text: str) -> str:
     text = str(text).lower()
     text = re.sub(r"http\S+|www\S+", "", text)
@@ -112,15 +116,27 @@ def ensure_file_exists(file_path: Path):
         st.stop()
 
 
+# -----------------------------
+# Data Loaders
+# -----------------------------
 @st.cache_data
 def load_spam_data():
     spam_path = DATA_DIR / "spam.csv"
     ensure_file_exists(spam_path)
 
     data = pd.read_csv(spam_path, encoding="latin1")
+    data.columns = data.columns.str.strip()
+
+    # expected Kaggle-style columns v1, v2
+    if "v1" not in data.columns or "v2" not in data.columns:
+        st.error(f"spam.csv must contain columns 'v1' and 'v2'. Found: {data.columns.tolist()}")
+        st.stop()
+
     data = data.rename(columns={"v1": "label", "v2": "message"})
     data = data[["label", "message"]].dropna().copy()
     data["label"] = data["label"].map({"ham": 0, "spam": 1})
+    data = data.dropna(subset=["label"]).copy()
+    data["label"] = data["label"].astype(int)
     data["message"] = data["message"].astype(str).apply(clean_text)
     return data
 
@@ -130,20 +146,18 @@ def load_sentiment_data(sample_size: int = 40000):
     sentiment_path = DATA_DIR / "Twitter_Data.csv"
     ensure_file_exists(sentiment_path)
 
-    # Read all columns — do NOT specify usecols to avoid KeyError on missing names
+    # Read full CSV safely
     data = pd.read_csv(sentiment_path)
-
-    # Strip leading/trailing whitespace from all column names
     data.columns = data.columns.str.strip()
 
-    # Auto-detect text column (case-insensitive)
+    # Auto-detect text column
     text_col = None
     for col in data.columns:
         if col.lower() in ["clean_text", "text", "tweet", "message", "content"]:
             text_col = col
             break
 
-    # Auto-detect label column (case-insensitive)
+    # Auto-detect label column
     label_col = None
     for col in data.columns:
         if col.lower() in ["category", "label", "sentiment", "target", "polarity", "class"]:
@@ -151,14 +165,14 @@ def load_sentiment_data(sample_size: int = 40000):
             break
 
     if text_col is None:
-        st.error(f"Text column not found. Columns in your CSV: {data.columns.tolist()}")
+        st.error(f"Text column not found in Twitter_Data.csv. Found columns: {data.columns.tolist()}")
         st.stop()
 
     if label_col is None:
-        st.error(f"Label column not found. Columns in your CSV: {data.columns.tolist()}")
+        st.error(f"Label column not found in Twitter_Data.csv. Found columns: {data.columns.tolist()}")
         st.stop()
 
-    # Standardise column names for the rest of the pipeline
+    # Standardize names
     data = data.rename(columns={text_col: "clean_text", label_col: "category"})
     data = data[["clean_text", "category"]].copy()
 
@@ -166,19 +180,20 @@ def load_sentiment_data(sample_size: int = 40000):
     data["category"] = pd.to_numeric(data["category"], errors="coerce")
     data = data.dropna(subset=["category"]).copy()
     data["category"] = data["category"].round().astype(int)
+
+    # Keep only valid sentiment classes
     data = data[data["category"].isin([-1, 0, 1])].copy()
 
     if data.empty:
-        st.error(
-            "No valid rows after filtering. "
-            "Make sure the label column has values -1, 0, or 1."
-        )
+        st.error("No valid rows found. Sentiment labels must contain only -1, 0, or 1.")
         st.stop()
 
+    # Balanced sampling
     if len(data) > sample_size:
+        per_class = max(sample_size // 3, 1)
         data = (
             data.groupby("category", group_keys=False)
-            .apply(lambda frame: frame.sample(min(len(frame), sample_size // 3), random_state=42))
+            .apply(lambda x: x.sample(min(len(x), per_class), random_state=42))
             .reset_index(drop=True)
         )
 
@@ -196,6 +211,8 @@ def load_fake_news_data(sample_size: int = 30000):
         engine="python",
         on_bad_lines="skip",
     )
+    data.columns = data.columns.str.strip()
+
     data = data.dropna(subset=["label"]).copy()
     data["title"] = data["title"].fillna("").astype(str)
     data["text"] = data["text"].fillna("").astype(str)
@@ -205,16 +222,24 @@ def load_fake_news_data(sample_size: int = 30000):
     data = data[data["label"].isin([0, 1])].copy()
     data["content"] = (data["title"] + " " + data["text"]).apply(clean_text)
 
+    if data.empty:
+        st.error("No valid rows found in WELFake_sample.csv.")
+        st.stop()
+
     if len(data) > sample_size:
+        per_class = max(sample_size // 2, 1)
         data = (
             data.groupby("label", group_keys=False)
-            .apply(lambda frame: frame.sample(min(len(frame), sample_size // 2), random_state=42))
+            .apply(lambda x: x.sample(min(len(x), per_class), random_state=42))
             .reset_index(drop=True)
         )
 
     return data[["content", "label"]]
 
 
+# -----------------------------
+# Model Builders
+# -----------------------------
 def build_text_pipeline(model):
     return Pipeline(
         [
@@ -237,6 +262,7 @@ def build_text_pipeline(model):
 @st.cache_resource
 def train_spam_models():
     data = load_spam_data()
+
     x_train, x_test, y_train, y_test = train_test_split(
         data["message"],
         data["label"],
@@ -253,19 +279,20 @@ def train_spam_models():
     metrics = {}
     for name, model in models.items():
         model.fit(x_train, y_train)
-        predictions = model.predict(x_test)
+        preds = model.predict(x_test)
         metrics[name] = {
-            "accuracy": accuracy_score(y_test, predictions),
-            "f1": f1_score(y_test, predictions),
+            "accuracy": accuracy_score(y_test, preds),
+            "f1": f1_score(y_test, preds),
         }
 
-    best_model_name = max(metrics, key=lambda name: metrics[name]["accuracy"])
+    best_model_name = max(metrics, key=lambda n: metrics[n]["accuracy"])
     return models, metrics, best_model_name
 
 
 @st.cache_resource
 def train_sentiment_models():
     data = load_sentiment_data()
+
     x_train, x_test, y_train, y_test = train_test_split(
         data["clean_text"],
         data["category"],
@@ -282,19 +309,20 @@ def train_sentiment_models():
     metrics = {}
     for name, model in models.items():
         model.fit(x_train, y_train)
-        predictions = model.predict(x_test)
+        preds = model.predict(x_test)
         metrics[name] = {
-            "accuracy": accuracy_score(y_test, predictions),
-            "macro_f1": f1_score(y_test, predictions, average="macro"),
+            "accuracy": accuracy_score(y_test, preds),
+            "macro_f1": f1_score(y_test, preds, average="macro"),
         }
 
-    best_model_name = max(metrics, key=lambda name: metrics[name]["accuracy"])
+    best_model_name = max(metrics, key=lambda n: metrics[n]["accuracy"])
     return models, metrics, best_model_name
 
 
 @st.cache_resource
 def train_fake_news_models():
     data = load_fake_news_data()
+
     x_train, x_test, y_train, y_test = train_test_split(
         data["content"],
         data["label"],
@@ -315,18 +343,21 @@ def train_fake_news_models():
     metrics = {}
     for name, model in models.items():
         model.fit(x_train, y_train)
-        predictions = model.predict(x_test)
+        preds = model.predict(x_test)
         metrics[name] = {
-            "accuracy": accuracy_score(y_test, predictions),
-            "fake_f1": f1_score(y_test, predictions, pos_label=0),
+            "accuracy": accuracy_score(y_test, preds),
+            "fake_f1": f1_score(y_test, preds, pos_label=0),
         }
 
     best_model_name = max(
-        metrics, key=lambda name: (metrics[name]["fake_f1"], metrics[name]["accuracy"])
+        metrics, key=lambda n: (metrics[n]["fake_f1"], metrics[n]["accuracy"])
     )
     return models, metrics, best_model_name
 
 
+# -----------------------------
+# Example Inputs
+# -----------------------------
 SPAM_EXAMPLES = {
     "Spam Example": "Congratulations! You have won a free iPhone. Click the link now to claim your prize.",
     "Ham Example": "Hi, just checking if we are still meeting tomorrow at 11 AM for the project discussion.",
@@ -350,6 +381,10 @@ FAKE_NEWS_EXAMPLES = {
     ),
 }
 
+
+# -----------------------------
+# UI
+# -----------------------------
 st.title("PredictLab NLP Studio")
 st.write(
     "This page combines three NLP projects: spam email detection, sentiment analysis, and fake news detection."
@@ -361,6 +396,10 @@ selected_section = st.radio(
     horizontal=True,
 )
 
+
+# -----------------------------
+# Spam Section
+# -----------------------------
 if selected_section == "Spam Email Detection":
     st.subheader("Spam Email Detection")
     st.write("Classify an email as spam or ham and compare two text classification models.")
@@ -383,19 +422,23 @@ if selected_section == "Spam Email Detection":
     spam_text = st.text_area("Enter Email Text", height=180, key="spam_text_area")
 
     if st.button("Predict Email Type"):
-        cleaned_text = clean_text(spam_text)
-        spam_prediction = int(spam_selected_model.predict([cleaned_text])[0])
-        confidence = get_confidence(spam_selected_model, cleaned_text)
+        if spam_text.strip():
+            cleaned_text = clean_text(spam_text)
+            pred = int(spam_selected_model.predict([cleaned_text])[0])
+            confidence = get_confidence(spam_selected_model, cleaned_text)
 
-        if spam_prediction == 1:
-            render_label(f"Spam Email (Confidence: {confidence:.1f}%)", "red")
+            if pred == 1:
+                render_label(f"Spam Email (Confidence: {confidence:.1f}%)", "red")
+            else:
+                render_label(f"Ham Email (Confidence: {confidence:.1f}%)", "green")
+
+            st.info(f"Prediction made using: {spam_model_choice}")
         else:
-            render_label(f"Ham Email (Confidence: {confidence:.1f}%)", "green")
-
-        st.info(f"Prediction made using: {spam_model_choice}")
+            st.warning("Please enter email text first.")
 
     st.markdown("---")
     st.subheader("NLP Model Comparison & Evaluation")
+
     col1, col2 = st.columns(2)
     model_names = list(spam_metrics.keys())
 
@@ -410,8 +453,12 @@ if selected_section == "Spam Email Detection":
         st.write("F1 Score:", f"{spam_metrics[model_names[1]]['f1']:.3f}")
 
     st.info(f"Best spam model: {spam_best_model_name}")
-    st.write("Reason: Higher F1-score indicating better balance between precision and recall for spam detection")
+    st.write("Reason: Higher F1 score means better balance between precision and recall.")
 
+
+# -----------------------------
+# Sentiment Section
+# -----------------------------
 elif selected_section == "Sentiment Analysis":
     st.subheader("Sentiment Analysis")
     st.write("Predict whether a comment is positive, negative, or neutral and compare two models.")
@@ -437,21 +484,25 @@ elif selected_section == "Sentiment Analysis":
     sentiment_text = st.text_area("Enter Comment Text", height=180, key="sentiment_text_area")
 
     if st.button("Predict Sentiment"):
-        cleaned_text = clean_text(sentiment_text)
-        sentiment_prediction = int(sentiment_selected_model.predict([cleaned_text])[0])
-        confidence = get_confidence(sentiment_selected_model, cleaned_text)
+        if sentiment_text.strip():
+            cleaned_text = clean_text(sentiment_text)
+            pred = int(sentiment_selected_model.predict([cleaned_text])[0])
+            confidence = get_confidence(sentiment_selected_model, cleaned_text)
 
-        if sentiment_prediction == 1:
-            render_label(f"Positive (Confidence: {confidence:.1f}%)", "green")
-        elif sentiment_prediction == -1:
-            render_label(f"Negative (Confidence: {confidence:.1f}%)", "red")
+            if pred == 1:
+                render_label(f"Positive (Confidence: {confidence:.1f}%)", "green")
+            elif pred == -1:
+                render_label(f"Negative (Confidence: {confidence:.1f}%)", "red")
+            else:
+                render_label(f"Neutral (Confidence: {confidence:.1f}%)", "blue")
+
+            st.info(f"Prediction made using: {sentiment_model_choice}")
         else:
-            render_label(f"Neutral (Confidence: {confidence:.1f}%)", "blue")
-
-        st.info(f"Prediction made using: {sentiment_model_choice}")
+            st.warning("Please enter comment text first.")
 
     st.markdown("---")
     st.subheader("NLP Model Comparison & Evaluation")
+
     col1, col2 = st.columns(2)
     model_names = list(sentiment_metrics.keys())
 
@@ -467,6 +518,10 @@ elif selected_section == "Sentiment Analysis":
 
     st.info(f"Best sentiment model: {sentiment_best_model_name}")
 
+
+# -----------------------------
+# Fake News Section
+# -----------------------------
 else:
     st.subheader("Fake News Detection")
     st.write("Classify news text as real or fake and compare two fake-news detection models.")
@@ -489,26 +544,30 @@ else:
     fake_text = st.text_area("Enter News Text", height=200, key="fake_text_area")
 
     if st.button("Predict News Type"):
-        cleaned_text = clean_text(fake_text)
-        model_prediction = int(fake_selected_model.predict([cleaned_text])[0])
-        confidence = get_confidence(fake_selected_model, cleaned_text)
+        if fake_text.strip():
+            cleaned_text = clean_text(fake_text)
+            model_pred = int(fake_selected_model.predict([cleaned_text])[0])
+            confidence = get_confidence(fake_selected_model, cleaned_text)
 
-        final_pred, rule_used = apply_news_rules(fake_text, model_prediction)
+            final_pred, rule_used = apply_news_rules(fake_text, model_pred)
 
-        if final_pred == 1:
-            render_label(f"Real News (Confidence: {confidence:.1f}%)", "green")
+            if final_pred == 1:
+                render_label(f"Real News (Confidence: {confidence:.1f}%)", "green")
+            else:
+                render_label(f"Fake News (Confidence: {confidence:.1f}%)", "red")
+
+            st.info(f"Prediction made using: {fake_model_choice}")
+
+            if rule_used == "fake_rule":
+                st.warning("Safety rule applied: sensational fake-news patterns were detected.")
+            elif rule_used == "real_rule":
+                st.info("Real-news rule applied: official/news-report wording was detected.")
         else:
-            render_label(f"Fake News (Confidence: {confidence:.1f}%)", "red")
-
-        st.info(f"Prediction made using: {fake_model_choice}")
-
-        if rule_used == "fake_rule":
-            st.warning("Safety rule applied: sensational fake-news patterns were detected.")
-        elif rule_used == "real_rule":
-            st.info("Real-news rule applied: official/news-report wording was detected.")
+            st.warning("Please enter news text first.")
 
     st.markdown("---")
     st.subheader("NLP Model Comparison & Evaluation")
+
     col1, col2 = st.columns(2)
     model_names = list(fake_metrics.keys())
 
@@ -525,8 +584,9 @@ else:
     st.info(f"Best fake-news model: {fake_best_model_name}")
 
 
-import matplotlib.pyplot as plt
-
+# -----------------------------
+# Graphs
+# -----------------------------
 st.markdown("---")
 st.header("Model Performance Graphs")
 
@@ -578,7 +638,7 @@ elif selected_section == "Sentiment Analysis":
 
     st.pyplot(fig)
 
-elif selected_section == "Fake News Detection":
+else:
     st.subheader("Fake News Model Accuracy and Fake F1")
 
     model_names = list(fake_metrics.keys())
