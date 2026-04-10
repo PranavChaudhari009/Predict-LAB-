@@ -210,19 +210,72 @@ def load_sentiment_data(sample_size: int = 40000):
     return data
 
 
-def train_sentiment_models():
-    data = load_sentiment_data()
+def load_sentiment_data(sample_size: int = 40000):
+    sentiment_path = DATA_DIR / "Twitter_Data.csv"
+    ensure_file_exists(sentiment_path)
 
-    st.write("Inside train_sentiment_models columns:", data.columns.tolist())
+    data = pd.read_csv(sentiment_path)
+    data.columns = data.columns.str.strip()
 
-    if "clean_text" not in data.columns or "category" not in data.columns:
-        st.error(f"Columns missing in training step. Found: {data.columns.tolist()}")
+    st.write("Loaded sentiment file:", str(sentiment_path))
+    st.write("Detected columns:", data.columns.tolist())
+
+    text_col = None
+    for col in data.columns:
+        if col.lower() in ["clean_text", "text", "tweet", "message", "content"]:
+            text_col = col
+            break
+
+    label_col = None
+    for col in data.columns:
+        if col.lower() in ["category", "label", "sentiment", "target", "polarity", "class"]:
+            label_col = col
+            break
+
+    if text_col is None:
+        st.error(f"Text column not found. Available columns: {data.columns.tolist()}")
         st.stop()
 
-    X = data.loc[:, "clean_text"].copy()
-    y = data.loc[:, "category"].copy()
+    if label_col is None:
+        st.error(f"Label column not found. Available columns: {data.columns.tolist()}")
+        st.stop()
 
-    st.write("Target class counts:", y.value_counts().to_dict())
+    # make a brand-new dataframe, no rename chaining nonsense
+    sentiment_df = pd.DataFrame({
+        "clean_text": data[text_col].fillna("").astype(str).apply(clean_text),
+        "category": pd.to_numeric(data[label_col], errors="coerce")
+    })
+
+    sentiment_df = sentiment_df.dropna(subset=["category"]).reset_index(drop=True)
+    sentiment_df["category"] = sentiment_df["category"].round().astype(int)
+    sentiment_df = sentiment_df[sentiment_df["category"].isin([-1, 0, 1])].reset_index(drop=True)
+
+    if sentiment_df.empty:
+        st.error("No valid rows found after filtering labels.")
+        st.stop()
+
+    if len(sentiment_df) > sample_size:
+        per_class = max(sample_size // 3, 1)
+        sentiment_df = (
+            sentiment_df.groupby("category", group_keys=False)
+            .apply(lambda x: x.sample(min(len(x), per_class), random_state=42))
+            .reset_index(drop=True)
+        )
+
+    st.write("Final columns:", sentiment_df.columns.tolist())
+    st.write("Class counts:", sentiment_df["category"].value_counts().to_dict())
+
+    X = sentiment_df["clean_text"].tolist()
+    y = sentiment_df["category"].to_numpy()
+
+    return X, y
+
+
+def train_sentiment_models():
+    X, y = load_sentiment_data()
+
+    st.write("Training samples:", len(X))
+    st.write("Target samples:", len(y))
 
     x_train, x_test, y_train, y_test = train_test_split(
         X,
