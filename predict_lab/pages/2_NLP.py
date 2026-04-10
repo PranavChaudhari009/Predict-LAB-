@@ -117,6 +117,24 @@ def ensure_file_exists(file_path: Path):
 
 
 # -----------------------------
+# FIX: Safe balanced sampling — avoids groupby().apply() KeyError
+# on newer pandas versions deployed on Streamlit Cloud
+# -----------------------------
+def balanced_sample(df: pd.DataFrame, label_col: str, per_class: int, random_state: int = 42) -> pd.DataFrame:
+    """
+    Sample `per_class` rows per unique value in `label_col`.
+    Uses pd.concat instead of groupby().apply() to avoid the
+    KeyError: 'category' / column-drop bug in pandas >= 2.0.
+    """
+    frames = []
+    for label_val in df[label_col].unique():
+        subset = df[df[label_col] == label_val]
+        n = min(len(subset), per_class)
+        frames.append(subset.sample(n=n, random_state=random_state))
+    return pd.concat(frames, ignore_index=True)
+
+
+# -----------------------------
 # Data Loaders
 # -----------------------------
 @st.cache_data
@@ -143,46 +161,58 @@ def load_spam_data():
 
 @st.cache_data
 def load_sentiment_data(sample_size: int = 40000):
-    path = DATA_DIR / "Twitter_Data.csv"
-    ensure_file_exists(path)
-    
-    data = pd.read_csv(path, low_memory=False)
-    
-    # Clean column names
-    data.columns = data.columns.str.strip().str.lower()
-    
-    # Rename common variations
-    rename_dict = {}
-    if 'clean_text' in data.columns or 'text' in data.columns:
-        rename_dict[next(c for c in data.columns if c in ['clean_text', 'text', 'tweet', 'message'])] = 'clean_text'
-    if 'category' in data.columns or 'label' in data.columns or 'sentiment' in data.columns:
-        rename_dict[next(c for c in data.columns if c in ['category', 'label', 'sentiment', 'target'])] = 'category'
-    
-    if rename_dict:
-        data = data.rename(columns=rename_dict)
-    
-    # Final check
-    if 'clean_text' not in data.columns or 'category' not in data.columns:
-        st.error(f"❌ Could not find required columns. Found: {list(data.columns)}")
-        st.error("Expected: clean_text and category")
+    sentiment_path = DATA_DIR / "Twitter_Data.csv"
+    ensure_file_exists(sentiment_path)
+
+    data = pd.read_csv(sentiment_path)
+    data.columns = data.columns.str.strip()
+
+    # Auto-detect text column
+    text_col = None
+    for col in data.columns:
+        if col.lower() in ["clean_text", "text", "tweet", "message", "content"]:
+            text_col = col
+            break
+
+    # Auto-detect label column
+    label_col = None
+    for col in data.columns:
+        if col.lower() in ["category", "label", "sentiment", "target", "polarity", "class"]:
+            label_col = col
+            break
+
+    if text_col is None:
+        st.error(f"Text column not found in Twitter_Data.csv. Found columns: {data.columns.tolist()}")
         st.stop()
-    
+
+    if label_col is None:
+        st.error(f"Label column not found in Twitter_Data.csv. Found columns: {data.columns.tolist()}")
+        st.stop()
+
+    # Standardize names
+    data = data.rename(columns={text_col: "clean_text", label_col: "category"})
+    # ── Keep only the two columns we need RIGHT AFTER renaming ──
     data = data[["clean_text", "category"]].copy()
+
     data["clean_text"] = data["clean_text"].fillna("").astype(str).apply(clean_text)
     data["category"] = pd.to_numeric(data["category"], errors="coerce")
     data = data.dropna(subset=["category"]).copy()
     data["category"] = data["category"].round().astype(int)
+
+    # Keep only valid sentiment classes
     data = data[data["category"].isin([-1, 0, 1])].copy()
-    
-    # Sampling
+
+    if data.empty:
+        st.error("No valid rows found. Sentiment labels must contain only -1, 0, or 1.")
+        st.stop()
+
+    # ── FIX: use safe balanced_sample() instead of groupby().apply() ──
     if len(data) > sample_size:
         per_class = max(sample_size // 3, 1)
-        data = data.groupby("category", group_keys=False).apply(
-            lambda x: x.sample(min(len(x), per_class), random_state=42)
-        ).reset_index(drop=True)
-    
-    st.success(f"✅ Successfully loaded {len(data)} sentiment records")
+        data = balanced_sample(data, label_col="category", per_class=per_class)
+
     return data
+
 
 @st.cache_data
 def load_fake_news_data(sample_size: int = 30000):
@@ -210,13 +240,10 @@ def load_fake_news_data(sample_size: int = 30000):
         st.error("No valid rows found in WELFake_sample.csv.")
         st.stop()
 
+    # ── FIX: use safe balanced_sample() instead of groupby().apply() ──
     if len(data) > sample_size:
         per_class = max(sample_size // 2, 1)
-        data = (
-            data.groupby("label", group_keys=False)
-            .apply(lambda x: x.sample(min(len(x), per_class), random_state=42))
-            .reset_index(drop=True)
-        )
+        data = balanced_sample(data[["content", "label"]], label_col="label", per_class=per_class)
 
     return data[["content", "label"]]
 
