@@ -141,22 +141,23 @@ def load_spam_data():
     return data
 
 
+@st.cache_data
 def load_sentiment_data(sample_size: int = 40000):
     sentiment_path = DATA_DIR / "Twitter_Data.csv"
     ensure_file_exists(sentiment_path)
 
+    # Read full CSV safely
     data = pd.read_csv(sentiment_path)
     data.columns = data.columns.str.strip()
 
-    st.write("Loaded sentiment file:", str(sentiment_path))
-    st.write("Detected columns:", data.columns.tolist())
-
+    # Auto-detect text column
     text_col = None
     for col in data.columns:
         if col.lower() in ["clean_text", "text", "tweet", "message", "content"]:
             text_col = col
             break
 
+    # Auto-detect label column
     label_col = None
     for col in data.columns:
         if col.lower() in ["category", "label", "sentiment", "target", "polarity", "class"]:
@@ -164,41 +165,30 @@ def load_sentiment_data(sample_size: int = 40000):
             break
 
     if text_col is None:
-        st.error(f"Text column not found. Available columns: {data.columns.tolist()}")
+        st.error(f"Text column not found in Twitter_Data.csv. Found columns: {data.columns.tolist()}")
         st.stop()
 
     if label_col is None:
-        st.error(f"Label column not found. Available columns: {data.columns.tolist()}")
+        st.error(f"Label column not found in Twitter_Data.csv. Found columns: {data.columns.tolist()}")
         st.stop()
 
+    # Standardize names
     data = data.rename(columns={text_col: "clean_text", label_col: "category"})
-    st.write("Columns after rename:", data.columns.tolist())
+    data = data[["clean_text", "category"]].copy()
 
-    # force fresh dataframe with only needed columns
-    data = pd.DataFrame({
-        "clean_text": data["clean_text"].fillna("").astype(str).apply(clean_text),
-        "category": pd.to_numeric(data["category"], errors="coerce")
-    })
-
-    data = data.dropna(subset=["category"]).reset_index(drop=True)
+    data["clean_text"] = data["clean_text"].fillna("").astype(str).apply(clean_text)
+    data["category"] = pd.to_numeric(data["category"], errors="coerce")
+    data = data.dropna(subset=["category"]).copy()
     data["category"] = data["category"].round().astype(int)
-    data = data[data["category"].isin([-1, 0, 1])].reset_index(drop=True)
 
-    st.write("Final columns:", data.columns.tolist())
-    st.write("Sample rows:", data.head())
-
-    if "category" not in data.columns:
-        st.error("category column missing after preprocessing")
-        st.stop()
-
-    if "clean_text" not in data.columns:
-        st.error("clean_text column missing after preprocessing")
-        st.stop()
+    # Keep only valid sentiment classes
+    data = data[data["category"].isin([-1, 0, 1])].copy()
 
     if data.empty:
-        st.error("No valid rows found after filtering labels.")
+        st.error("No valid rows found. Sentiment labels must contain only -1, 0, or 1.")
         st.stop()
 
+    # Balanced sampling
     if len(data) > sample_size:
         per_class = max(sample_size // 3, 1)
         data = (
@@ -208,99 +198,6 @@ def load_sentiment_data(sample_size: int = 40000):
         )
 
     return data
-
-
-def load_sentiment_data(sample_size: int = 40000):
-    sentiment_path = DATA_DIR / "Twitter_Data.csv"
-    ensure_file_exists(sentiment_path)
-
-    data = pd.read_csv(sentiment_path)
-    data.columns = data.columns.str.strip()
-
-    st.write("Loaded sentiment file:", str(sentiment_path))
-    st.write("Detected columns:", data.columns.tolist())
-
-    text_col = None
-    for col in data.columns:
-        if col.lower() in ["clean_text", "text", "tweet", "message", "content"]:
-            text_col = col
-            break
-
-    label_col = None
-    for col in data.columns:
-        if col.lower() in ["category", "label", "sentiment", "target", "polarity", "class"]:
-            label_col = col
-            break
-
-    if text_col is None:
-        st.error(f"Text column not found. Available columns: {data.columns.tolist()}")
-        st.stop()
-
-    if label_col is None:
-        st.error(f"Label column not found. Available columns: {data.columns.tolist()}")
-        st.stop()
-
-    # make a brand-new dataframe, no rename chaining nonsense
-    sentiment_df = pd.DataFrame({
-        "clean_text": data[text_col].fillna("").astype(str).apply(clean_text),
-        "category": pd.to_numeric(data[label_col], errors="coerce")
-    })
-
-    sentiment_df = sentiment_df.dropna(subset=["category"]).reset_index(drop=True)
-    sentiment_df["category"] = sentiment_df["category"].round().astype(int)
-    sentiment_df = sentiment_df[sentiment_df["category"].isin([-1, 0, 1])].reset_index(drop=True)
-
-    if sentiment_df.empty:
-        st.error("No valid rows found after filtering labels.")
-        st.stop()
-
-    if len(sentiment_df) > sample_size:
-        per_class = max(sample_size // 3, 1)
-        sentiment_df = (
-            sentiment_df.groupby("category", group_keys=False)
-            .apply(lambda x: x.sample(min(len(x), per_class), random_state=42))
-            .reset_index(drop=True)
-        )
-
-    st.write("Final columns:", sentiment_df.columns.tolist())
-    st.write("Class counts:", sentiment_df["category"].value_counts().to_dict())
-
-    X = sentiment_df["clean_text"].tolist()
-    y = sentiment_df["category"].to_numpy()
-
-    return X, y
-
-
-def train_sentiment_models():
-    X, y = load_sentiment_data()
-
-    st.write("Training samples:", len(X))
-    st.write("Target samples:", len(y))
-
-    x_train, x_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-        stratify=y,
-    )
-
-    models = {
-        "Logistic Regression": build_text_pipeline(LogisticRegression(max_iter=1000)),
-        "Multinomial Naive Bayes": build_text_pipeline(MultinomialNB()),
-    }
-
-    metrics = {}
-    for name, model in models.items():
-        model.fit(x_train, y_train)
-        predictions = model.predict(x_test)
-        metrics[name] = {
-            "accuracy": accuracy_score(y_test, predictions),
-            "macro_f1": f1_score(y_test, predictions, average="macro"),
-        }
-
-    best_model_name = max(metrics, key=lambda name: metrics[name]["accuracy"])
-    return models, metrics, best_model_name
 
 
 @st.cache_data
