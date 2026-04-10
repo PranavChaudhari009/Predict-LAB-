@@ -143,62 +143,46 @@ def load_spam_data():
 
 @st.cache_data
 def load_sentiment_data(sample_size: int = 40000):
-    sentiment_path = DATA_DIR / "Twitter_Data.csv"
-    ensure_file_exists(sentiment_path)
-
-    # Read full CSV safely
-    data = pd.read_csv(sentiment_path)
-    data.columns = data.columns.str.strip()
-
-    # Auto-detect text column
-    text_col = None
-    for col in data.columns:
-        if col.lower() in ["clean_text", "text", "tweet", "message", "content"]:
-            text_col = col
-            break
-
-    # Auto-detect label column
-    label_col = None
-    for col in data.columns:
-        if col.lower() in ["category", "label", "sentiment", "target", "polarity", "class"]:
-            label_col = col
-            break
-
-    if text_col is None:
-        st.error(f"Text column not found in Twitter_Data.csv. Found columns: {data.columns.tolist()}")
+    path = DATA_DIR / "Twitter_Data.csv"
+    ensure_file_exists(path)
+    
+    data = pd.read_csv(path, low_memory=False)
+    
+    # Clean column names
+    data.columns = data.columns.str.strip().str.lower()
+    
+    # Rename common variations
+    rename_dict = {}
+    if 'clean_text' in data.columns or 'text' in data.columns:
+        rename_dict[next(c for c in data.columns if c in ['clean_text', 'text', 'tweet', 'message'])] = 'clean_text'
+    if 'category' in data.columns or 'label' in data.columns or 'sentiment' in data.columns:
+        rename_dict[next(c for c in data.columns if c in ['category', 'label', 'sentiment', 'target'])] = 'category'
+    
+    if rename_dict:
+        data = data.rename(columns=rename_dict)
+    
+    # Final check
+    if 'clean_text' not in data.columns or 'category' not in data.columns:
+        st.error(f"❌ Could not find required columns. Found: {list(data.columns)}")
+        st.error("Expected: clean_text and category")
         st.stop()
-
-    if label_col is None:
-        st.error(f"Label column not found in Twitter_Data.csv. Found columns: {data.columns.tolist()}")
-        st.stop()
-
-    # Standardize names
-    data = data.rename(columns={text_col: "clean_text", label_col: "category"})
+    
     data = data[["clean_text", "category"]].copy()
-
     data["clean_text"] = data["clean_text"].fillna("").astype(str).apply(clean_text)
     data["category"] = pd.to_numeric(data["category"], errors="coerce")
     data = data.dropna(subset=["category"]).copy()
     data["category"] = data["category"].round().astype(int)
-
-    # Keep only valid sentiment classes
     data = data[data["category"].isin([-1, 0, 1])].copy()
-
-    if data.empty:
-        st.error("No valid rows found. Sentiment labels must contain only -1, 0, or 1.")
-        st.stop()
-
-    # Balanced sampling
+    
+    # Sampling
     if len(data) > sample_size:
         per_class = max(sample_size // 3, 1)
-        data = (
-            data.groupby("category", group_keys=False)
-            .apply(lambda x: x.sample(min(len(x), per_class), random_state=42))
-            .reset_index(drop=True)
-        )
-
+        data = data.groupby("category", group_keys=False).apply(
+            lambda x: x.sample(min(len(x), per_class), random_state=42)
+        ).reset_index(drop=True)
+    
+    st.success(f"✅ Successfully loaded {len(data)} sentiment records")
     return data
-
 
 @st.cache_data
 def load_fake_news_data(sample_size: int = 30000):
