@@ -141,7 +141,6 @@ def load_spam_data():
     return data
 
 
-@st.cache_data
 def load_sentiment_data(sample_size: int = 40000):
     sentiment_path = DATA_DIR / "Twitter_Data.csv"
     ensure_file_exists(sentiment_path)
@@ -175,12 +174,26 @@ def load_sentiment_data(sample_size: int = 40000):
     data = data.rename(columns={text_col: "clean_text", label_col: "category"})
     st.write("Columns after rename:", data.columns.tolist())
 
-    data = data[["clean_text", "category"]].copy()
-    data["clean_text"] = data["clean_text"].fillna("").astype(str).apply(clean_text)
-    data["category"] = pd.to_numeric(data["category"], errors="coerce")
-    data = data.dropna(subset=["category"]).copy()
+    # force fresh dataframe with only needed columns
+    data = pd.DataFrame({
+        "clean_text": data["clean_text"].fillna("").astype(str).apply(clean_text),
+        "category": pd.to_numeric(data["category"], errors="coerce")
+    })
+
+    data = data.dropna(subset=["category"]).reset_index(drop=True)
     data["category"] = data["category"].round().astype(int)
-    data = data[data["category"].isin([-1, 0, 1])].copy()
+    data = data[data["category"].isin([-1, 0, 1])].reset_index(drop=True)
+
+    st.write("Final columns:", data.columns.tolist())
+    st.write("Sample rows:", data.head())
+
+    if "category" not in data.columns:
+        st.error("category column missing after preprocessing")
+        st.stop()
+
+    if "clean_text" not in data.columns:
+        st.error("clean_text column missing after preprocessing")
+        st.stop()
 
     if data.empty:
         st.error("No valid rows found after filtering labels.")
@@ -195,6 +208,46 @@ def load_sentiment_data(sample_size: int = 40000):
         )
 
     return data
+
+
+def train_sentiment_models():
+    data = load_sentiment_data()
+
+    st.write("Inside train_sentiment_models columns:", data.columns.tolist())
+
+    if "clean_text" not in data.columns or "category" not in data.columns:
+        st.error(f"Columns missing in training step. Found: {data.columns.tolist()}")
+        st.stop()
+
+    X = data.loc[:, "clean_text"].copy()
+    y = data.loc[:, "category"].copy()
+
+    st.write("Target class counts:", y.value_counts().to_dict())
+
+    x_train, x_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y,
+    )
+
+    models = {
+        "Logistic Regression": build_text_pipeline(LogisticRegression(max_iter=1000)),
+        "Multinomial Naive Bayes": build_text_pipeline(MultinomialNB()),
+    }
+
+    metrics = {}
+    for name, model in models.items():
+        model.fit(x_train, y_train)
+        predictions = model.predict(x_test)
+        metrics[name] = {
+            "accuracy": accuracy_score(y_test, predictions),
+            "macro_f1": f1_score(y_test, predictions, average="macro"),
+        }
+
+    best_model_name = max(metrics, key=lambda name: metrics[name]["accuracy"])
+    return models, metrics, best_model_name
 
 
 @st.cache_data
