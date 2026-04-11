@@ -34,11 +34,10 @@ with col2:
     st.write("House Price Prediction")
 
     st.header("Clustering")
-    st.write("Customer Chrun")
+    st.write("Credit Card Fraud Detection")
 
 
     
-    st.header("Recommendation System")
-    st.write("Game Recommendation System")
+   
 
 st.info("Use the sidebar to navigate between modules.")
