@@ -139,7 +139,7 @@ Contributions, issues, and feature requests are welcome!
 
 - 🔗 **Live App:** [predictlab9.streamlit.app](https://predictlab9.streamlit.app/)
 - 💼 **LinkedIn:** [www.linkedin.com/in/pranavchaudhari009]
-- 🐙 **GitHub:** [Your GitHub Profile]
+
 
 ---
 
