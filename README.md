@@ -26,7 +26,7 @@
 | 📝 **NLP** | Text Analysis | Spam detection, sentiment analysis & fake news classification |
 | 👥 **Clustering** | Customer Segmentation | Group customers by purchasing behavior for targeted marketing |
 | 📈 **Time Series** | Stock Forecasting | Forecast stock price movements using historical data |
-| 🎯 **Recommendation System** | Product Suggestions | Personalized recommendations based on user behavior |
+
 
 ---
 
@@ -138,7 +138,7 @@ Contributions, issues, and feature requests are welcome!
 ## 📬 Connect
 
 - 🔗 **Live App:** [predictlab9.streamlit.app](https://predictlab9.streamlit.app/)
-- 💼 **LinkedIn:** [Your LinkedIn Profile]
+- 💼 **LinkedIn:** [www.linkedin.com/in/pranavchaudhari009]
 - 🐙 **GitHub:** [Your GitHub Profile]
 
 ---
