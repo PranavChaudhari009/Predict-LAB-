@@ -69,21 +69,20 @@ streamlit run app.py
 ## 📁 Project Structure
 
 ```
-predictlab/
+├── predict_lab/
+│   ├── data/
+│   ├── images/
+│   ├── models/
+│   ├── notebooks/
+│   ├── pages/
+│   ├── reports/
+│   ├── README.md
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── runtime.txt
+│   └── tempCodeRunnerFile.py
 │
-├── app.py                  # Main Streamlit app entry point
-├── requirements.txt        # Python dependencies
-│
-├── modules/
-│   ├── classification.py   # Loan approval model
-│   ├── regression.py       # House price model
-│   ├── nlp.py              # NLP tasks (spam, sentiment, fake news)
-│   ├── clustering.py       # Customer segmentation
-│   ├── time_series.py      # Stock price forecasting
-│   └── recommendation.py  # Recommendation system
-│
-├── data/                   # Sample datasets
-└── assets/                 # Images and static files
+└── README.md
 ```
 
 ---
